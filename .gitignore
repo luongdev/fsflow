@@ -1,0 +1,53 @@
+app.yml
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+*.DS_Store
+*._*
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
+.glide/
+
+# JetBrains IDEs .idea folder
+.idea/
+
+# VSCode .vscode folder
+.vscode/
+
+# History of local variables from JetBrains IDEs
+*.iws
+
+# Built binary files
+/bin/
+/pkg/
+
+# Log files
+*.log
+
+# Golang build directory
+dist/
+
+# Golangci-lint cache
+.golangci.yaml
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
