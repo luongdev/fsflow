@@ -2,9 +2,12 @@ package workflow
 
 import (
 	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/shared"
 	"github.com/uber-go/tally"
 	"go.uber.org/cadence/.gen/go/cadence/workflowserviceclient"
+	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/worker"
+	"go.uber.org/cadence/workflow"
 	"io"
 	"os"
 	"time"
@@ -21,8 +24,8 @@ type FreeswitchWorker struct {
 	fsClient      *freeswitch.SocketClient
 	CadenceClient *workflowserviceclient.Interface
 
-	workflows  []interface{}
-	activities []interface{}
+	workflows  []shared.FreeswitchWorkflow
+	activities []shared.FreeswitchActivity
 }
 
 func NewFreeswitchWorker(c Config, opts *FreeswitchWorkerOptions) (worker.Worker, error) {
@@ -53,18 +56,18 @@ func NewFreeswitchWorker(c Config, opts *FreeswitchWorkerOptions) (worker.Worker
 		Worker:        w,
 		CadenceClient: &client,
 		fsClient:      opts.FsClient,
-		workflows:     make([]interface{}, 0),
-		activities:    make([]interface{}, 0),
+		workflows:     make([]shared.FreeswitchWorkflow, 0),
+		activities:    make([]shared.FreeswitchActivity, 0),
 	}, nil
 }
 
 func (w *FreeswitchWorker) Start() error {
-	for _, workflow := range w.workflows {
-		w.Worker.RegisterWorkflow(workflow)
+	for _, ww := range w.workflows {
+		w.Worker.RegisterWorkflowWithOptions(ww.Handler(), workflow.RegisterOptions{Name: ww.Name()})
 	}
 
-	for _, activity := range w.activities {
-		w.Worker.RegisterActivity(activity)
+	for _, wa := range w.activities {
+		w.Worker.RegisterActivityWithOptions(wa.Handler(), activity.RegisterOptions{Name: wa.Name()})
 	}
 
 	err := w.Worker.Start()
@@ -75,10 +78,10 @@ func (w *FreeswitchWorker) Start() error {
 	return nil
 }
 
-func (w *FreeswitchWorker) RegisterWorkflow(workflow interface{}) {
+func (w *FreeswitchWorker) AddWorkflow(workflow shared.FreeswitchWorkflow) {
 	w.workflows = append(w.workflows, workflow)
 }
 
-func (w *FreeswitchWorker) RegisterActivity(activity interface{}) {
-	w.workflows = append(w.workflows, activity)
+func (w *FreeswitchWorker) AddActivity(activity shared.FreeswitchActivity) {
+	w.activities = append(w.activities, activity)
 }

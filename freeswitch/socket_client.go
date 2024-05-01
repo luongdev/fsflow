@@ -3,7 +3,7 @@ package freeswitch
 import (
 	"context"
 	"fmt"
-	"github.com/luongdev/fsflow/errors"
+	"github.com/luongdev/fsflow/shared"
 	"github.com/percipia/eslgo"
 	"github.com/percipia/eslgo/command"
 	"github.com/percipia/eslgo/command/call"
@@ -71,11 +71,11 @@ func (s *SocketClientImpl) BgApi(ctx context.Context, cmd *Command) (string, err
 
 func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (string, error) {
 	if input.Gateway == "" {
-		return "", errors.RequireField("gateway")
+		return "", shared.RequireField("gateway")
 	}
 
 	if input.DNIS == "" {
-		return "", errors.RequireField("DNIS")
+		return "", shared.RequireField("DNIS")
 	}
 
 	if input.ANI == "" {
