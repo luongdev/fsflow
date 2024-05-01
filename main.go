@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/workflow"
 	"log"
 	"time"
 )
@@ -34,7 +35,7 @@ func (s *ServerEventHandlerImpl) OnSession(ctx context.Context, req *freeswitch.
 }
 
 func main() {
-	server, _, err := freeswitch.NewFreeswitchSocket(&freeswitch.Config{
+	server, client, err := freeswitch.NewFreeswitchSocket(&freeswitch.Config{
 		FsHost:           "10.8.0.1",
 		FsPort:           65021,
 		FsPassword:       "Simplefs!!",
@@ -47,6 +48,20 @@ func main() {
 	}
 
 	server.SetEventHandler(&ServerEventHandlerImpl{})
+
+	w, err := workflow.NewFreeswitchWorker(workflow.Config{
+		CadenceTaskList:   "demo-task-list",
+		CadenceHost:       "103.141.141.60",
+		CadenceClientName: "demo-client",
+	}, &workflow.FreeswitchWorkerOptions{
+		Domain:   "default",
+		FsClient: &client,
+	})
+
+	err = w.Start()
+	if err != nil {
+		panic(err)
+	}
 
 	exit := make(chan any)
 

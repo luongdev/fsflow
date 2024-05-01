@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var _ SocketClient = &SocketClientImpl{}
+var _ SocketClient = (*SocketClientImpl)(nil)
 
 type SocketClientImpl struct {
 	*eslgo.Conn
