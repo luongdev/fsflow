@@ -19,7 +19,7 @@ type HangupActivity struct {
 }
 
 func (c *HangupActivity) Name() string {
-	return "workflows.HangupActivity"
+	return "activities.HangupActivity"
 }
 
 func NewHangupActivity(fsClient *freeswitch.SocketClient) *HangupActivity {
