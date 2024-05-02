@@ -42,7 +42,7 @@ func NewFreeswitchWorker(c Config, opts *FreeswitchWorkerOptions) (*FreeswitchWo
 	}
 
 	scope, closer := tally.NewRootScope(tally.ScopeOptions{
-		Prefix:   c.CadenceClientName,
+		Prefix:   c.ClientName,
 		Tags:     map[string]string{"env": os.Getenv("ENV")},
 		Reporter: tally.NullStatsReporter,
 	}, 5*time.Second)
@@ -52,7 +52,7 @@ func NewFreeswitchWorker(c Config, opts *FreeswitchWorkerOptions) (*FreeswitchWo
 	}(closer)
 
 	workerOptions := worker.Options{Logger: logger, MetricsScope: scope}
-	w := worker.New(client, opts.Domain, c.CadenceTaskList, workerOptions)
+	w := worker.New(client, opts.Domain, c.TaskList, workerOptions)
 
 	fsWorker := &FreeswitchWorker{
 		Worker:        w,
