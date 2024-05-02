@@ -30,7 +30,7 @@ type FreeswitchWorker struct {
 	activities []shared.FreeswitchActivity
 }
 
-func NewFreeswitchWorker(c Config, opts *FreeswitchWorkerOptions) (worker.Worker, error) {
+func NewFreeswitchWorker(c Config, opts *FreeswitchWorkerOptions) (*FreeswitchWorker, error) {
 	client, err := NewCadenceClient(c)
 	if err != nil {
 		return nil, err
