@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/luongdev/fsflow/freeswitch"
 	fsflow "github.com/luongdev/fsflow/workflow"
-	"github.com/luongdev/fsflow/workflow/activities"
 	"github.com/luongdev/fsflow/workflow/workflows"
 	"go.uber.org/cadence/.gen/go/cadence/workflowserviceclient"
 	"go.uber.org/cadence/.gen/go/shared"
@@ -21,32 +21,24 @@ type ServerEventHandlerImpl struct {
 
 func (s *ServerEventHandlerImpl) OnSession(ctx context.Context, req *freeswitch.Request) {
 	_, err := req.Client.Execute(ctx, &freeswitch.Command{
-		AppName: "answer",
+		AppName: "multiset",
+		Uid:     req.UniqueId,
+		AppArgs: fmt.Sprintf("api_after_bridge='uuid_transfer %v -bleg hold_call XML public'", req.UniqueId),
+	})
+	_, err = req.Client.Execute(ctx, &freeswitch.Command{AppName: "answer", Uid: req.UniqueId})
+	_, err = req.Client.Execute(ctx, &freeswitch.Command{
+		AppName: "sleep",
+		AppArgs: fmt.Sprintf("%v", uint(time.Second*5/time.Millisecond)),
 		Uid:     req.UniqueId,
 	})
 
-	sessionId := req.UniqueId
-	phoneNumber := req.GetHeader("Channel-Caller-ID-Number")
-	if phoneNumber == "" {
-		phoneNumber = req.GetHeader("Channel-ANI")
-	}
-	dialedNumber := req.GetHeader("variable_sip_to_user")
-	if dialedNumber == "" {
-		dialedNumber = req.GetHeader("variable_sip_req_user")
-	}
-
 	initializer := req.GetHeader("variable_init")
-	if initializer == "" {
-		initializer = "https://omicx.vn"
-	}
-
-	log.Printf("session_id: %s, phone_number: %s, dialed_number: %s", sessionId, phoneNumber, dialedNumber)
-
 	input, err := json.Marshal(workflows.InboundWorkflowInput{
-		SessionId:    sessionId,
-		PhoneNumber:  phoneNumber,
-		DialedNumber: dialedNumber,
-		Initializer:  initializer,
+		SessionId:   req.UniqueId,
+		ANI:         req.ANI,
+		DNIS:        req.DNIS,
+		Initializer: initializer,
+		Timeout:     60 * time.Second,
 	})
 
 	if err != nil {
@@ -62,8 +54,8 @@ func (s *ServerEventHandlerImpl) OnSession(ctx context.Context, req *freeswitch.
 
 	wfReq := &shared.StartWorkflowExecutionRequest{
 		Domain:                              &domain,
-		WorkflowId:                          &sessionId,
-		RequestId:                           &sessionId,
+		WorkflowId:                          &req.UniqueId,
+		RequestId:                           &req.UniqueId,
 		WorkflowType:                        &shared.WorkflowType{Name: &workflowType},
 		TaskList:                            &shared.TaskList{Name: &taskList},
 		Input:                               input,
@@ -98,15 +90,7 @@ func main() {
 		CadenceClientName: "demo-client",
 	}, &fsflow.FreeswitchWorkerOptions{Domain: "default", FsClient: &client})
 
-	fw := w.(*fsflow.FreeswitchWorker)
-
-	ibWorkflow := workflows.NewInboundWorkflow(&client)
-	fw.AddWorkflow(ibWorkflow)
-
-	hangupActivity := activities.NewHangupActivity(&client)
-	fw.AddActivity(hangupActivity)
-
-	server.SetEventHandler(&ServerEventHandlerImpl{cadenceClient: fw.CadenceClient})
+	server.SetEventHandler(&ServerEventHandlerImpl{cadenceClient: w.(*fsflow.FreeswitchWorker).CadenceClient})
 
 	err = w.Start()
 	if err != nil {

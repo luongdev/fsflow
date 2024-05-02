@@ -3,6 +3,8 @@ package workflow
 import (
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
+	"github.com/luongdev/fsflow/workflow/activities"
+	"github.com/luongdev/fsflow/workflow/workflows"
 	"github.com/uber-go/tally"
 	"go.uber.org/cadence/.gen/go/cadence/workflowserviceclient"
 	"go.uber.org/cadence/activity"
@@ -52,13 +54,22 @@ func NewFreeswitchWorker(c Config, opts *FreeswitchWorkerOptions) (worker.Worker
 	workerOptions := worker.Options{Logger: logger, MetricsScope: scope}
 	w := worker.New(client, opts.Domain, c.CadenceTaskList, workerOptions)
 
-	return &FreeswitchWorker{
+	fsWorker := &FreeswitchWorker{
 		Worker:        w,
 		CadenceClient: &client,
 		fsClient:      opts.FsClient,
 		workflows:     make([]shared.FreeswitchWorkflow, 0),
 		activities:    make([]shared.FreeswitchActivity, 0),
-	}, nil
+	}
+
+	fsWorker.AddWorkflow(workflows.NewInboundWorkflow(opts.FsClient))
+
+	fsWorker.AddActivity(activities.NewBridgeActivity(opts.FsClient))
+	fsWorker.AddActivity(activities.NewHangupActivity(opts.FsClient))
+	fsWorker.AddActivity(activities.NewOriginateActivity(opts.FsClient))
+	fsWorker.AddActivity(activities.NewSessionInitActivity(opts.FsClient))
+
+	return fsWorker, nil
 }
 
 func (w *FreeswitchWorker) Start() error {

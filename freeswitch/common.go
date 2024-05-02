@@ -19,6 +19,7 @@ type Status string
 const (
 	Success Status = "+OK"
 	Failure Status = "-ERR"
+	Syntax  Status = "-USAGE"
 )
 
 type Response struct {
@@ -47,6 +48,11 @@ func (c *Response) Get() (string, bool) {
 		return strings.TrimSpace(res), false
 	}
 
+	found = strings.HasPrefix(body, string(Syntax))
+	if found {
+		return strings.TrimSpace(body), false
+	}
+
 	res, found = strings.CutPrefix(body, string(Success))
 	if found {
 		return removeUnwantedChars(res), true
@@ -58,6 +64,9 @@ func (c *Response) Get() (string, bool) {
 type Request struct {
 	*eslgo.RawResponse
 	UniqueId string
+	ANI      string
+	DNIS     string
+	Domain   string
 	Client   SocketClient
 }
 
@@ -68,6 +77,16 @@ func NewRequest(conn *eslgo.Conn, raw *eslgo.RawResponse) *Request {
 	}
 
 	r.UniqueId = r.getUniqueId()
+
+	r.ANI = r.GetHeader("Channel-Caller-ID-Number")
+	if r.ANI == "" {
+		r.ANI = r.GetHeader("Channel-ANI")
+	}
+
+	r.DNIS = r.GetHeader("variable_sip_to_user")
+	if r.DNIS == "" {
+		r.DNIS = r.GetHeader("variable_sip_req_user")
+	}
 
 	return r
 }

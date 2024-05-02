@@ -3,48 +3,37 @@ package shared
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"go.uber.org/cadence/workflow"
-	"strconv"
 )
 
-type Action string
+type FsAction string
 
 const (
-	Bridge    Action = "bridge"
-	Answer    Action = "answer"
-	Hangup    Action = "hangup"
-	Transfer  Action = "transfer"
-	Originate Action = "originate"
+	Bridge    FsAction = "bridge"
+	Answer    FsAction = "answer"
+	Hangup    FsAction = "hangup"
+	Transfer  FsAction = "transfer"
+	Originate FsAction = "originate"
 )
 
 type Field string
 
 const (
+	Action      Field = "action"
 	Destination Field = "destination"
 	Timeout     Field = "timeout"
 	Message     Field = "message"
+	HangupCause Field = "hangupCause"
 	Uid         Field = "uid"
+	Gateway     Field = "gateway"
+	Profile     Field = "profile"
 )
 
-type Metadata map[Field]string
+type Metadata map[Field]interface{}
 
 type ActivityFunc func(ctx context.Context, input interface{}) (WorkflowOutput, error)
 
 type WorkflowFunc func(ctx workflow.Context, input interface{}) (WorkflowOutput, error)
-
-func (m *Metadata) Set(key Field, value interface{}) {
-	var strValue string
-	switch v := value.(type) {
-	case string:
-		strValue = v
-	case bool:
-		strValue = strconv.FormatBool(v)
-	default:
-		strValue = fmt.Sprintf("%v", v)
-	}
-	(*m)[key] = strValue
-}
 
 type WorkflowOutput struct {
 	Success  bool     `json:"success"`

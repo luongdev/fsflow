@@ -6,11 +6,12 @@ import (
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
+	"go.uber.org/zap"
 )
 
 type BridgeActivityInput struct {
-	AlegUid string `json:"alegId"`
-	BlegId  string `json:"blegId"`
+	Originator string `json:"originator"`
+	Originatee string `json:"originatee"`
 }
 
 type BridgeActivity struct {
@@ -40,7 +41,7 @@ func (c *BridgeActivity) Handler() shared.ActivityFunc {
 
 		res, err := (*c.fsClient).Api(ctx, &freeswitch.Command{
 			AppName: "uuid_bridge",
-			AppArgs: fmt.Sprintf("%v %v", input.AlegUid, input.BlegId),
+			AppArgs: fmt.Sprintf("%v %v", input.Originator, input.Originatee),
 		})
 
 		if err != nil {
@@ -49,6 +50,8 @@ func (c *BridgeActivity) Handler() shared.ActivityFunc {
 
 		output.Success = true
 		output.Metadata[shared.Message] = res
+
+		logger.Info("BridgeActivity completed", zap.Any("input", input))
 
 		return output, nil
 	}
