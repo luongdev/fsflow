@@ -18,6 +18,7 @@ type SessionInitActivityInput struct {
 	Domain      string        `json:"domain"`
 	Initializer string        `json:"initializer"`
 	Timeout     time.Duration `json:"timeout"`
+	SessionId   string        `json:"sessionId"`
 }
 
 type SessionInitActivity struct {

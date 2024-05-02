@@ -111,10 +111,7 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 		input.Variables["sip_h_Reject"] = "deny"
 	}
 	input.Variables["sip_h_Direction"] = string(input.Direction)
-	var bleg eslgo.Leg
-	if input.BridgeTo == "" {
-		bleg = eslgo.Leg{CallURL: fmt.Sprintf("&sleep(%v)", timeoutMillis)}
-	}
+	bleg := eslgo.Leg{CallURL: fmt.Sprintf("&sleep(%v)", timeoutMillis)}
 
 	vars := make(map[string]string)
 	for k, v := range input.Variables {

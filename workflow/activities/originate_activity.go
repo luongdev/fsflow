@@ -2,6 +2,7 @@ package activities
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
@@ -18,6 +19,7 @@ type OriginateActivityInput struct {
 	AllowReject  bool                   `json:"allowReject"`
 	Direction    freeswitch.Direction   `json:"direction"`
 	Variables    map[string]interface{} `json:"variables"`
+	BridgeTo     string                 `json:"bridgeTo"`
 }
 
 type OriginateActivity struct {
@@ -61,6 +63,12 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 
 		output.Success = true
 		output.Metadata[shared.Uid] = res
+
+		id, err := uuid.Parse(input.BridgeTo)
+		if err == nil {
+			output.Metadata[shared.Action] = shared.Bridge
+			output.Metadata[shared.Input] = BridgeActivityInput{Originator: id.String(), Originatee: res}
+		}
 
 		return output, nil
 	}

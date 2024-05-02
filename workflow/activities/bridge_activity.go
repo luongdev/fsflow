@@ -58,3 +58,33 @@ func (c *BridgeActivity) Handler() shared.ActivityFunc {
 }
 
 var _ shared.FreeswitchActivity = (*BridgeActivity)(nil)
+
+//
+//type BridgeProcessor struct {
+//	*workflow.FreeswitchActivityProcessor[BridgeActivityInput]
+//}
+//
+//func NewBridgeProcessor(fsClient *freeswitch.SocketClient) *BridgeProcessor {
+//	return &BridgeProcessor{
+//		FreeswitchActivityProcessor: workflow.NewFreeswitchActivityProcessor[BridgeActivityInput](fsClient),
+//	}
+//}
+//
+//func (b *BridgeProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (shared.WorkflowOutput, error) {
+//	o := shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+//	input, err := b.FreeswitchActivityProcessor.GetInput(metadata)
+//
+//	if err != nil {
+//		return o, err
+//	}
+//
+//	a := NewBridgeActivity(b.FsClient)
+//	err = libworkflow.ExecuteActivity(ctx, a.Handler(), input).Get(ctx, &o)
+//	if err != nil {
+//		return o, err
+//	}
+//
+//	return o, nil
+//}
+//
+//var _ workflow.Processor = (*BridgeProcessor)(nil)

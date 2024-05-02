@@ -145,7 +145,6 @@ type Originator struct {
 	AutoAnswer  bool
 	AllowReject bool
 	Background  bool
-	BridgeTo    string
 	Direction   Direction
 	ANI         string
 	DNIS        string

@@ -27,13 +27,14 @@ const (
 	Uid         Field = "uid"
 	Gateway     Field = "gateway"
 	Profile     Field = "profile"
+	Input       Field = "input"
 )
 
 type Metadata map[Field]interface{}
 
-type ActivityFunc func(ctx context.Context, input interface{}) (WorkflowOutput, error)
+type ActivityFunc func(ctx context.Context, i interface{}) (WorkflowOutput, error)
 
-type WorkflowFunc func(ctx workflow.Context, input interface{}) (WorkflowOutput, error)
+type WorkflowFunc func(ctx workflow.Context, i interface{}) (WorkflowOutput, error)
 
 type WorkflowOutput struct {
 	Success  bool     `json:"success"`
