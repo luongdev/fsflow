@@ -1,4 +1,4 @@
-package errors
+package shared
 
 import "fmt"
 
@@ -12,4 +12,12 @@ func NewRequireError(field, message string) *MissingArgError {
 
 func RequireField(field string) *MissingArgError {
 	return &MissingArgError{error: fmt.Errorf("arg '%v' is required", field)}
+}
+
+type WorkflowInputError struct {
+	error
+}
+
+func NewWorkflowInputError(msg string) *WorkflowInputError {
+	return &WorkflowInputError{error: fmt.Errorf("workflow input error: %v", msg)}
 }
