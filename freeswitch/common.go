@@ -74,30 +74,62 @@ func NewRequest(conn *eslgo.Conn, raw *eslgo.RawResponse) *Request {
 	r := &Request{
 		Client:      &SocketClientImpl{conn},
 		RawResponse: raw,
-	}
-
-	r.UniqueId = r.getUniqueId()
-
-	r.ANI = r.GetHeader("Channel-Caller-ID-Number")
-	if r.ANI == "" {
-		r.ANI = r.GetHeader("Channel-ANI")
-	}
-
-	r.DNIS = r.GetHeader("variable_sip_to_user")
-	if r.DNIS == "" {
-		r.DNIS = r.GetHeader("variable_sip_req_user")
+		ANI:         getANI(raw),
+		DNIS:        getDNIS(raw),
+		Domain:      getDomain(raw),
+		UniqueId:    getUniqueId(raw),
 	}
 
 	return r
 }
 
-func (r *Request) getUniqueId() string {
-	if r.HasHeader("Channel-Call-UUID") {
-		return r.GetHeader("Channel-Call-UUID")
+func getDomain(raw *eslgo.RawResponse) string {
+	if raw != nil {
+		if raw.HasHeader("variable_domain") {
+			return raw.GetHeader("variable_domain")
+		}
 	}
 
-	if r.HasHeader("Unique-ID") {
-		return r.GetHeader("Unique-ID")
+	return ""
+}
+
+func getANI(raw *eslgo.RawResponse) string {
+	if raw != nil {
+		if raw.HasHeader("Channel-Caller-ID-Number") {
+			return raw.GetHeader("Channel-Caller-ID-Number")
+		}
+
+		if raw.HasHeader("Channel-ANI") {
+			return raw.GetHeader("Channel-ANI")
+		}
+	}
+
+	return ""
+}
+
+func getDNIS(raw *eslgo.RawResponse) string {
+	if raw != nil {
+		if raw.HasHeader("variable_sip_to_user") {
+			return raw.GetHeader("variable_sip_to_user")
+		}
+
+		if raw.HasHeader("variable_sip_req_user") {
+			return raw.GetHeader("variable_sip_req_user")
+		}
+	}
+
+	return ""
+}
+
+func getUniqueId(raw *eslgo.RawResponse) string {
+	if raw != nil {
+		if raw.HasHeader("Channel-Call-UUID") {
+			return raw.GetHeader("Channel-Call-UUID")
+		}
+
+		if raw.HasHeader("Unique-ID") {
+			return raw.GetHeader("Unique-ID")
+		}
 	}
 
 	return ""
