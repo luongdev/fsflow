@@ -24,6 +24,10 @@ func NewFreeswitchSocket(c *Config) (SocketServer, SocketClient, error) {
 		c.ListenOn = 65022
 	}
 
+	if c.Timeout == 0 {
+		c.Timeout = 10 * time.Second
+	}
+
 	server := NewSocketServer(c.ListenOn)
 
 	panicChan := make(chan error, 1)

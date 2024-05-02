@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-func NewCadenceClient(c Config) (workflowserviceclient.Interface, error) {
+func NewCadenceClient(c *Config) (workflowserviceclient.Interface, error) {
 	if c.ServiceName == "" {
 		c.ServiceName = "cadence-frontend"
 	}

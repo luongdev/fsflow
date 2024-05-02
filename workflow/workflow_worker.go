@@ -22,7 +22,6 @@ type FreeswitchWorkerOptions struct {
 
 type FreeswitchWorker struct {
 	worker.Worker
-	config        Config
 	fsClient      *freeswitch.SocketClient
 	CadenceClient *workflowserviceclient.Interface
 
@@ -30,7 +29,7 @@ type FreeswitchWorker struct {
 	activities []shared.FreeswitchActivity
 }
 
-func NewFreeswitchWorker(c Config, opts *FreeswitchWorkerOptions) (*FreeswitchWorker, error) {
+func NewFreeswitchWorker(c *Config, opts *FreeswitchWorkerOptions) (*FreeswitchWorker, error) {
 	client, err := NewCadenceClient(c)
 	if err != nil {
 		return nil, err
