@@ -3,14 +3,14 @@ package freeswitch
 import (
 	"context"
 	"fmt"
-	"github.com/luongdev/fsflow/errors"
+	"github.com/luongdev/fsflow/shared"
 	"github.com/percipia/eslgo"
 	"github.com/percipia/eslgo/command"
 	"github.com/percipia/eslgo/command/call"
 	"time"
 )
 
-var _ SocketClient = &SocketClientImpl{}
+var _ SocketClient = (*SocketClientImpl)(nil)
 
 type SocketClientImpl struct {
 	*eslgo.Conn
@@ -71,11 +71,11 @@ func (s *SocketClientImpl) BgApi(ctx context.Context, cmd *Command) (string, err
 
 func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (string, error) {
 	if input.Gateway == "" {
-		return "", errors.RequireField("gateway")
+		return "", shared.RequireField("gateway")
 	}
 
 	if input.DNIS == "" {
-		return "", errors.RequireField("DNIS")
+		return "", shared.RequireField("DNIS")
 	}
 
 	if input.ANI == "" {
@@ -112,7 +112,7 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	}
 	input.Variables["sip_h_Direction"] = string(input.Direction)
 	var bleg eslgo.Leg
-	if input.BridgeTo != "" {
+	if input.BridgeTo == "" {
 		bleg = eslgo.Leg{CallURL: fmt.Sprintf("&sleep(%v)", timeoutMillis)}
 	}
 

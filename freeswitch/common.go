@@ -19,6 +19,7 @@ type Status string
 const (
 	Success Status = "+OK"
 	Failure Status = "-ERR"
+	Syntax  Status = "-USAGE"
 )
 
 type Response struct {
@@ -47,6 +48,11 @@ func (c *Response) Get() (string, bool) {
 		return strings.TrimSpace(res), false
 	}
 
+	found = strings.HasPrefix(body, string(Syntax))
+	if found {
+		return strings.TrimSpace(body), false
+	}
+
 	res, found = strings.CutPrefix(body, string(Success))
 	if found {
 		return removeUnwantedChars(res), true
@@ -58,6 +64,9 @@ func (c *Response) Get() (string, bool) {
 type Request struct {
 	*eslgo.RawResponse
 	UniqueId string
+	ANI      string
+	DNIS     string
+	Domain   string
 	Client   SocketClient
 }
 
@@ -65,20 +74,62 @@ func NewRequest(conn *eslgo.Conn, raw *eslgo.RawResponse) *Request {
 	r := &Request{
 		Client:      &SocketClientImpl{conn},
 		RawResponse: raw,
+		ANI:         getANI(raw),
+		DNIS:        getDNIS(raw),
+		Domain:      getDomain(raw),
+		UniqueId:    getUniqueId(raw),
 	}
-
-	r.UniqueId = r.getUniqueId()
 
 	return r
 }
 
-func (r *Request) getUniqueId() string {
-	if r.HasHeader("Channel-Call-UUID") {
-		return r.GetHeader("Channel-Call-UUID")
+func getDomain(raw *eslgo.RawResponse) string {
+	if raw != nil {
+		if raw.HasHeader("variable_domain") {
+			return raw.GetHeader("variable_domain")
+		}
 	}
 
-	if r.HasHeader("Unique-ID") {
-		return r.GetHeader("Unique-ID")
+	return ""
+}
+
+func getANI(raw *eslgo.RawResponse) string {
+	if raw != nil {
+		if raw.HasHeader("Channel-Caller-ID-Number") {
+			return raw.GetHeader("Channel-Caller-ID-Number")
+		}
+
+		if raw.HasHeader("Channel-ANI") {
+			return raw.GetHeader("Channel-ANI")
+		}
+	}
+
+	return ""
+}
+
+func getDNIS(raw *eslgo.RawResponse) string {
+	if raw != nil {
+		if raw.HasHeader("variable_sip_to_user") {
+			return raw.GetHeader("variable_sip_to_user")
+		}
+
+		if raw.HasHeader("variable_sip_req_user") {
+			return raw.GetHeader("variable_sip_req_user")
+		}
+	}
+
+	return ""
+}
+
+func getUniqueId(raw *eslgo.RawResponse) string {
+	if raw != nil {
+		if raw.HasHeader("Channel-Call-UUID") {
+			return raw.GetHeader("Channel-Call-UUID")
+		}
+
+		if raw.HasHeader("Unique-ID") {
+			return raw.GetHeader("Unique-ID")
+		}
 	}
 
 	return ""

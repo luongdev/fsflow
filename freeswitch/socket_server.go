@@ -6,7 +6,7 @@ import (
 	"github.com/percipia/eslgo"
 )
 
-var _ SocketServer = &SocketServerImpl{}
+var _ SocketServer = (*SocketServerImpl)(nil)
 
 type SocketServerImpl struct {
 	port               uint16
