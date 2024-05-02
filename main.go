@@ -90,7 +90,7 @@ func main() {
 		CadenceClientName: "demo-client",
 	}, &fsflow.FreeswitchWorkerOptions{Domain: "default", FsClient: &client})
 
-	server.SetEventHandler(&ServerEventHandlerImpl{cadenceClient: w.(*fsflow.FreeswitchWorker).CadenceClient})
+	server.SetEventHandler(&ServerEventHandlerImpl{cadenceClient: w.CadenceClient})
 
 	err = w.Start()
 	if err != nil {
