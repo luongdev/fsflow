@@ -13,27 +13,27 @@ import (
 )
 
 func NewCadenceClient(c Config) (workflowserviceclient.Interface, error) {
-	if c.CadenceService == "" {
-		c.CadenceService = "cadence-frontend"
+	if c.ServiceName == "" {
+		c.ServiceName = "cadence-frontend"
 	}
-	if c.CadenceHost == "" {
-		c.CadenceHost = "127.0.0.1"
+	if c.Host == "" {
+		c.Host = "127.0.0.1"
 	}
-	if c.CadencePort == 0 {
-		c.CadencePort = 7833
+	if c.Port == 0 {
+		c.Port = 7833
 	}
-	if c.CadenceClientName == "" {
+	if c.ClientName == "" {
 		return nil, shared.RequireField("cadenceClientName")
 	}
-	if c.CadenceTaskList == "" {
+	if c.TaskList == "" {
 		return nil, shared.RequireField("cadenceTaskList")
 	}
 
-	hostPort := fmt.Sprintf("%v:%v", c.CadenceHost, c.CadencePort)
+	hostPort := fmt.Sprintf("%v:%v", c.Host, c.Port)
 	dispatcher := yarpc.NewDispatcher(yarpc.Config{
-		Name: c.CadenceClientName,
+		Name: c.ClientName,
 		Outbounds: yarpc.Outbounds{
-			c.CadenceService: {Unary: grpc.NewTransport().NewSingleOutbound(hostPort)},
+			c.ServiceName: {Unary: grpc.NewTransport().NewSingleOutbound(hostPort)},
 		},
 	})
 	err := dispatcher.Start()
@@ -41,7 +41,7 @@ func NewCadenceClient(c Config) (workflowserviceclient.Interface, error) {
 		return nil, err
 	}
 
-	clientConfig := dispatcher.ClientConfig(c.CadenceService)
+	clientConfig := dispatcher.ClientConfig(c.ServiceName)
 	itf := compatibility.NewThrift2ProtoAdapter(
 		apiv1.NewDomainAPIYARPCClient(clientConfig),
 		apiv1.NewWorkflowAPIYARPCClient(clientConfig),
