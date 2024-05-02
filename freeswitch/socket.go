@@ -8,23 +8,23 @@ import (
 )
 
 func NewFreeswitchSocket(c *Config) (SocketServer, SocketClient, error) {
-	if c.FsPort == 0 {
-		c.FsPort = 8021
+	if c.Port == 0 {
+		c.Port = 8021
 	}
 
-	if c.FsHost == "" {
-		c.FsHost = "127.0.0.1"
+	if c.Host == "" {
+		c.Host = "127.0.0.1"
 	}
 
-	if c.FsPassword == "" {
-		c.FsPassword = "ClueCon"
+	if c.Password == "" {
+		c.Password = "ClueCon"
 	}
 
-	if c.ServerListenPort == 0 {
-		c.ServerListenPort = 65022
+	if c.ListenOn == 0 {
+		c.ListenOn = 65022
 	}
 
-	server := NewSocketServer(c.ServerListenPort)
+	server := NewSocketServer(c.ListenOn)
 
 	panicChan := make(chan error, 1)
 
@@ -40,8 +40,8 @@ func NewFreeswitchSocket(c *Config) (SocketServer, SocketClient, error) {
 		break
 	}
 
-	hostPort := fmt.Sprintf("%v:%v", c.FsHost, c.FsPort)
-	conn, err := eslgo.Dial(hostPort, c.FsPassword, func() {
+	hostPort := fmt.Sprintf("%v:%v", c.Host, c.Port)
+	conn, err := eslgo.Dial(hostPort, c.Password, func() {
 		fmt.Printf("Server %v disconnected", hostPort)
 	})
 
