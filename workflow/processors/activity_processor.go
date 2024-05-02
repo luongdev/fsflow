@@ -33,6 +33,8 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx workflow.Context, metadata
 		processor = NewOriginateProcessor(p.FsClient)
 	case string(shared.Bridge):
 		processor = NewBridgeProcessor(p.FsClient)
+	case string(shared.Hangup):
+		processor = NewHangupProcessor(p.FsClient)
 	}
 
 	if processor == nil {
