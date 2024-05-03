@@ -49,6 +49,7 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			ctx,
 			libworkflow.ActivityOptions{ScheduleToStartTimeout: time.Second, StartToCloseTimeout: input.Timeout},
 		)
+		ctx = libworkflow.WithValue(ctx, shared.Uid, input.SessionId)
 
 		siActivity := activities.NewSessionInitActivity(w.fsClient)
 		f := libworkflow.ExecuteActivity(ctx, siActivity.Handler(), activities.SessionInitActivityInput{

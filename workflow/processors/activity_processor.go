@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
-	"go.uber.org/cadence/workflow"
+	libworkflow "go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 )
 
@@ -16,8 +16,8 @@ func NewFreeswitchActivityProcessor(client *freeswitch.SocketClient) *Freeswitch
 	return &FreeswitchActivityProcessorImpl{FsClient: client}
 }
 
-func (p *FreeswitchActivityProcessorImpl) Process(ctx workflow.Context, metadata shared.Metadata) (shared.WorkflowOutput, error) {
-	logger := workflow.GetLogger(ctx)
+func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metadata shared.Metadata) (shared.WorkflowOutput, error) {
+	logger := libworkflow.GetLogger(ctx)
 	o := shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
 	if metadata == nil || metadata[shared.Action] == nil {
 		return o, shared.NewWorkflowInputError("metadata is nil")
@@ -26,22 +26,15 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx workflow.Context, metadata
 	sessionId := ctx.Value(shared.Uid).(string)
 	logger.Info("Processing freeswitch activity", zap.String("sessionId", sessionId))
 
-	var processor shared.FreeswitchActivityProcessor
+	factory := NewFreeswitchProcessorFactory(p.FsClient)
 
-	switch metadata[shared.Action].(string) {
-	case string(shared.Originate):
-		processor = NewOriginateProcessor(p.FsClient)
-	case string(shared.Bridge):
-		processor = NewBridgeProcessor(p.FsClient)
-	case string(shared.Hangup):
-		processor = NewHangupProcessor(p.FsClient)
+	processor, err := factory.CreateActivityProcessor(metadata[shared.Action].(string))
+	if err != nil {
+		logger.Error("Failed to create activity processor", zap.Error(err))
+		return o, err
 	}
 
-	if processor == nil {
-		return o, shared.NewWorkflowInputError("unsupported action")
-	}
-
-	o, err := processor.Process(ctx, metadata)
+	o, err = processor.Process(ctx, metadata)
 	if err != nil {
 		return o, err
 	}
@@ -67,14 +60,3 @@ func (p *FreeswitchActivityProcessorImpl) GetInput(metadata shared.Metadata, i i
 }
 
 var _ shared.FreeswitchActivityProcessor = (*FreeswitchActivityProcessorImpl)(nil)
-
-func errorRecover(ec chan error) {
-	if r := recover(); r != nil {
-		switch x := r.(type) {
-		case error:
-			ec <- x
-		default:
-			ec <- fmt.Errorf("%v", x)
-		}
-	}
-}

@@ -19,15 +19,10 @@ const (
 type Field string
 
 const (
-	Action      Field = "action"
-	Destination Field = "destination"
-	Timeout     Field = "timeout"
-	Message     Field = "message"
-	HangupCause Field = "hangupCause"
-	Uid         Field = "uid"
-	Gateway     Field = "gateway"
-	Profile     Field = "profile"
-	Input       Field = "input"
+	Action  Field = "action"
+	Message Field = "message"
+	Uid     Field = "uid"
+	Input   Field = "input"
 )
 
 type Metadata map[Field]interface{}

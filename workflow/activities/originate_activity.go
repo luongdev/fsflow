@@ -6,6 +6,7 @@ import (
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -41,6 +42,9 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 		input := OriginateActivityInput{}
 		ok := shared.Convert(i, &input)
 
+		info := activity.GetInfo(ctx)
+		logger.Info("Executing OriginateActivity", zap.Any("info", info))
+
 		if !ok {
 			logger.Error("Failed to cast input to OriginateActivityInput")
 			return output, shared.NewWorkflowInputError("Cannot cast input to OriginateActivityInput")
@@ -64,7 +68,12 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 		output.Success = true
 		output.Metadata[shared.Uid] = res
 
-		id, err := uuid.Parse(input.BridgeTo)
+		var id uuid.UUID
+		if input.BridgeTo == "" && ctx.Value(shared.Uid) != nil {
+			id, err = uuid.Parse(ctx.Value(shared.Uid).(string))
+		} else {
+			id, err = uuid.Parse(input.BridgeTo)
+		}
 		if err == nil {
 			output.Metadata[shared.Action] = shared.Bridge
 			output.Metadata[shared.Input] = BridgeActivityInput{Originator: id.String(), Originatee: res}
