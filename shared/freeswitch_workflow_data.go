@@ -93,7 +93,7 @@ func ConvertInput(in WorkflowInput, out interface{}) bool {
 		return false
 	}
 
-	err = json.Unmarshal(jsonData, &out)
+	err = json.Unmarshal(jsonData, out)
 	if err != nil {
 		return false
 	}

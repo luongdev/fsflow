@@ -151,6 +151,7 @@ type Originator struct {
 	Gateway     string
 	Profile     string
 	Timeout     time.Duration
+	Extension   string
 	Variables   map[string]interface{}
 }
 

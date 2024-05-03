@@ -23,11 +23,7 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metad
 		return o, shared.NewWorkflowInputError("metadata is nil")
 	}
 
-	sessionId := ctx.Value(shared.FieldSessionId).(string)
-	logger.Info("Processing freeswitch activity", zap.String("sessionId", sessionId))
-
 	factory := NewFreeswitchProcessorFactory(p.FsClient)
-
 	processor, err := factory.CreateActivityProcessor(metadata[shared.FieldAction].(string))
 	if err != nil {
 		logger.Error("Failed to create activity processor", zap.Error(err))
@@ -51,7 +47,13 @@ func (p *FreeswitchActivityProcessorImpl) GetInput(metadata shared.Metadata, i i
 		return fmt.Errorf("cannot found action")
 	}
 
-	ok := shared.Convert(metadata[shared.FieldInput], &i)
+	input := shared.WorkflowInput{}
+	ok := shared.Convert(metadata[shared.FieldInput], &input)
+	if !ok || input == nil {
+		return fmt.Errorf("cannot cast input to WorkflowInput")
+	}
+
+	ok = shared.ConvertInput(input, &i)
 	if !ok {
 		return fmt.Errorf("cannot cast input for action: %v", metadata[shared.FieldAction])
 	}

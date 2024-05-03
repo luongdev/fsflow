@@ -2,7 +2,6 @@ package activities
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
@@ -11,6 +10,8 @@ import (
 )
 
 type OriginateActivityInput struct {
+	shared.WorkflowInput
+
 	Timeout      time.Duration          `json:"timeout"`
 	DialedNumber string                 `json:"dialedNumber"`
 	Destination  string                 `json:"destination"`
@@ -20,7 +21,7 @@ type OriginateActivityInput struct {
 	AllowReject  bool                   `json:"allowReject"`
 	Direction    freeswitch.Direction   `json:"direction"`
 	Variables    map[string]interface{} `json:"variables"`
-	BridgeTo     string                 `json:"bridgeTo"`
+	Extension    string                 `json:"extension"`
 }
 
 type OriginateActivity struct {
@@ -66,23 +67,28 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			AutoAnswer:  input.AutoAnswer,
 			AllowReject: input.AllowReject,
 			Variables:   input.Variables,
+			Extension:   input.Extension,
 		})
 		if err != nil {
 			return output, err
 		}
 
 		output.Success = true
-		output.Metadata[shared.FieldSessionId] = res
 
-		var id uuid.UUID
-		if input.BridgeTo == "" && ctx.Value(shared.FieldSessionId) != nil {
-			id, err = uuid.Parse(ctx.Value(shared.FieldSessionId).(string))
-		} else {
-			id, err = uuid.Parse(input.BridgeTo)
-		}
-		if err == nil {
+		if input.Extension == "" {
 			output.Metadata[shared.FieldAction] = shared.ActionBridge
-			output.Metadata[shared.FieldInput] = BridgeActivityInput{Originator: id.String(), Originatee: res}
+			bInput := BridgeActivityInput{
+				Originator:    input.GetSessionId(),
+				Originatee:    res,
+				WorkflowInput: shared.WorkflowInput{shared.FieldSessionId: i.GetSessionId()},
+			}
+			output.Metadata[shared.FieldInput] = bInput
+
+			if input.Direction == freeswitch.Outbound {
+				bInput.Originatee = input.GetSessionId()
+				bInput.Originator = res
+			}
+
 		}
 
 		return output, nil

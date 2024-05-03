@@ -71,7 +71,6 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 		}
 
 		processor := processors.NewFreeswitchActivityProcessor(w.fsClient)
-		ctx = libworkflow.WithValue(ctx, shared.FieldSessionId, i.GetSessionId())
 		output, err := processor.Process(ctx, output.Metadata)
 		if err != nil || !output.Success {
 			logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))
