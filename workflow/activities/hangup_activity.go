@@ -27,9 +27,9 @@ func NewHangupActivity(fsClient *freeswitch.SocketClient) *HangupActivity {
 }
 
 func (c *HangupActivity) Handler() shared.ActivityFunc {
-	return func(ctx context.Context, i interface{}) (shared.WorkflowOutput, error) {
+	return func(ctx context.Context, i interface{}) (*shared.WorkflowOutput, error) {
 		logger := activity.GetLogger(ctx)
-		output := shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+		output := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
 		input := HangupActivityInput{}
 		ok := shared.Convert(i, &input)
 
@@ -49,8 +49,8 @@ func (c *HangupActivity) Handler() shared.ActivityFunc {
 		}
 
 		output.Success = true
-		output.Metadata[shared.Uid] = input.SessionId
-		output.Metadata[shared.Message] =
+		output.Metadata[shared.FieldSessionId] = input.SessionId
+		output.Metadata[shared.FieldMessage] =
 			fmt.Sprintf("Session %v has been hungup cause: %v", input.SessionId, input.HangupCause)
 
 		return output, nil

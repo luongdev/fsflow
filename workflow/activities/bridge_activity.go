@@ -27,9 +27,9 @@ func NewBridgeActivity(fsClient *freeswitch.SocketClient) *BridgeActivity {
 }
 
 func (c *BridgeActivity) Handler() shared.ActivityFunc {
-	return func(ctx context.Context, i interface{}) (shared.WorkflowOutput, error) {
+	return func(ctx context.Context, i interface{}) (*shared.WorkflowOutput, error) {
 		logger := activity.GetLogger(ctx)
-		output := shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+		output := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
 
 		input := BridgeActivityInput{}
 		ok := shared.Convert(i, &input)
@@ -49,7 +49,7 @@ func (c *BridgeActivity) Handler() shared.ActivityFunc {
 		}
 
 		output.Success = true
-		output.Metadata[shared.Message] = res
+		output.Metadata[shared.FieldMessage] = res
 
 		logger.Info("BridgeActivity completed", zap.Any("input", input))
 

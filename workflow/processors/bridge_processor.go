@@ -16,9 +16,9 @@ func NewBridgeProcessor(client *freeswitch.SocketClient) *BridgeProcessor {
 	return &BridgeProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(client)}
 }
 
-func (p *BridgeProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (shared.WorkflowOutput, error) {
+func (p *BridgeProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
 	logger := libworkflow.GetLogger(ctx)
-	output := shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+	output := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
 
 	i := activities.BridgeActivityInput{}
 	err := p.GetInput(metadata, &i)

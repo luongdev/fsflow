@@ -16,19 +16,19 @@ func NewFreeswitchActivityProcessor(client *freeswitch.SocketClient) *Freeswitch
 	return &FreeswitchActivityProcessorImpl{FsClient: client}
 }
 
-func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metadata shared.Metadata) (shared.WorkflowOutput, error) {
+func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
 	logger := libworkflow.GetLogger(ctx)
-	o := shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
-	if metadata == nil || metadata[shared.Action] == nil {
+	o := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+	if metadata == nil || metadata[shared.FieldAction] == nil {
 		return o, shared.NewWorkflowInputError("metadata is nil")
 	}
 
-	sessionId := ctx.Value(shared.Uid).(string)
+	sessionId := ctx.Value(shared.FieldSessionId).(string)
 	logger.Info("Processing freeswitch activity", zap.String("sessionId", sessionId))
 
 	factory := NewFreeswitchProcessorFactory(p.FsClient)
 
-	processor, err := factory.CreateActivityProcessor(metadata[shared.Action].(string))
+	processor, err := factory.CreateActivityProcessor(metadata[shared.FieldAction].(string))
 	if err != nil {
 		logger.Error("Failed to create activity processor", zap.Error(err))
 		return o, err
@@ -39,7 +39,7 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metad
 		return o, err
 	}
 
-	if o.Success && o.Metadata[shared.Action] == nil {
+	if o.Success && o.Metadata[shared.FieldAction] == nil {
 		return o, nil
 	}
 
@@ -47,13 +47,13 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metad
 }
 
 func (p *FreeswitchActivityProcessorImpl) GetInput(metadata shared.Metadata, i interface{}) error {
-	if metadata == nil || metadata[shared.Action] == nil {
+	if metadata == nil || metadata[shared.FieldAction] == nil {
 		return fmt.Errorf("cannot found action")
 	}
 
-	ok := shared.Convert(metadata[shared.Input], &i)
+	ok := shared.Convert(metadata[shared.FieldInput], &i)
 	if !ok {
-		return fmt.Errorf("cannot cast input for action: %v", metadata[shared.Action])
+		return fmt.Errorf("cannot cast input for action: %v", metadata[shared.FieldAction])
 	}
 
 	return nil

@@ -15,11 +15,11 @@ func NewFreeswitchProcessorFactory(fsClient *freeswitch.SocketClient) *Freeswitc
 
 func (f *FreeswitchProcessorFactoryImpl) CreateActivityProcessor(s string) (shared.FreeswitchActivityProcessor, error) {
 	switch s {
-	case string(shared.Originate):
+	case string(shared.ActionOriginate):
 		return NewOriginateProcessor(f.fsClient), nil
-	case string(shared.Bridge):
+	case string(shared.ActionBridge):
 		return NewBridgeProcessor(f.fsClient), nil
-	case string(shared.Hangup):
+	case string(shared.ActionHangup):
 		return NewHangupProcessor(f.fsClient), nil
 
 	default:

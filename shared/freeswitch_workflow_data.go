@@ -3,37 +3,70 @@ package shared
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go.uber.org/cadence/workflow"
 )
 
-type FsAction string
+type Action string
 
 const (
-	Bridge    FsAction = "bridge"
-	Answer    FsAction = "answer"
-	Hangup    FsAction = "hangup"
-	Transfer  FsAction = "transfer"
-	Originate FsAction = "originate"
+	ActionBridge    Action = "bridge"
+	ActionAnswer    Action = "answer"
+	ActionHangup    Action = "hangup"
+	ActionTransfer  Action = "transfer"
+	ActionOriginate Action = "originate"
+	ActionUnknown   Action = "unknown"
 )
 
 type Field string
 
 const (
-	Action  Field = "action"
-	Message Field = "message"
-	Uid     Field = "uid"
-	Input   Field = "input"
+	FieldAction    Field = "action"
+	FieldMessage   Field = "message"
+	FieldSessionId Field = "sessionId"
+	FieldInput     Field = "input"
 )
 
 type Metadata map[Field]interface{}
 
-type ActivityFunc func(ctx context.Context, i interface{}) (WorkflowOutput, error)
+type WorkflowInput map[Field]interface{}
 
-type WorkflowFunc func(ctx workflow.Context, i interface{}) (WorkflowOutput, error)
+func (wi WorkflowInput) GetSessionId() string {
+	i, ok := wi[FieldSessionId]
+	if !ok {
+		m, ok := wi["WorkflowInput"].(map[string]interface{})
+		if !ok {
+			return ""
+		}
+		i = m[string(FieldSessionId)]
+	}
+
+	return fmt.Sprintf("%v", i)
+}
+
+func (wi WorkflowInput) Validate() error {
+	if wi.GetSessionId() == "" {
+		return NewWorkflowInputError("sessionId is required")
+	}
+	return nil
+}
+
+type ActivityFunc func(ctx context.Context, i interface{}) (*WorkflowOutput, error)
+
+type WorkflowFunc func(ctx workflow.Context, i WorkflowInput) (*WorkflowOutput, error)
 
 type WorkflowOutput struct {
-	Success  bool     `json:"success"`
-	Metadata Metadata `json:"metadata"`
+	Success   bool     `json:"success"`
+	SessionId string   `json:"sessionId"`
+	Metadata  Metadata `json:"metadata"`
+}
+
+func NewWorkflowOutput(sessionId string) *WorkflowOutput {
+	return &WorkflowOutput{
+		Success:   false,
+		SessionId: sessionId,
+		Metadata:  make(Metadata),
+	}
 }
 
 func Convert(m interface{}, target interface{}) bool {
@@ -43,6 +76,24 @@ func Convert(m interface{}, target interface{}) bool {
 	}
 
 	err = json.Unmarshal(jsonData, target)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+func ConvertInput(in WorkflowInput, out interface{}) bool {
+	if in["WorkflowInput"] == nil {
+		in["WorkflowInput"] = WorkflowInput{FieldSessionId: in.GetSessionId()}
+	}
+
+	jsonData, err := json.Marshal(in)
+	if err != nil {
+		return false
+	}
+
+	err = json.Unmarshal(jsonData, &out)
 	if err != nil {
 		return false
 	}

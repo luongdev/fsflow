@@ -36,9 +36,9 @@ func NewOriginateActivity(fsClient *freeswitch.SocketClient) *OriginateActivity 
 }
 
 func (o *OriginateActivity) Handler() shared.ActivityFunc {
-	return func(ctx context.Context, i interface{}) (shared.WorkflowOutput, error) {
+	return func(ctx context.Context, i interface{}) (*shared.WorkflowOutput, error) {
 		logger := activity.GetLogger(ctx)
-		output := shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+		output := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
 		input := OriginateActivityInput{}
 		ok := shared.Convert(i, &input)
 
@@ -66,17 +66,17 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 		}
 
 		output.Success = true
-		output.Metadata[shared.Uid] = res
+		output.Metadata[shared.FieldSessionId] = res
 
 		var id uuid.UUID
-		if input.BridgeTo == "" && ctx.Value(shared.Uid) != nil {
-			id, err = uuid.Parse(ctx.Value(shared.Uid).(string))
+		if input.BridgeTo == "" && ctx.Value(shared.FieldSessionId) != nil {
+			id, err = uuid.Parse(ctx.Value(shared.FieldSessionId).(string))
 		} else {
 			id, err = uuid.Parse(input.BridgeTo)
 		}
 		if err == nil {
-			output.Metadata[shared.Action] = shared.Bridge
-			output.Metadata[shared.Input] = BridgeActivityInput{Originator: id.String(), Originatee: res}
+			output.Metadata[shared.FieldAction] = shared.ActionBridge
+			output.Metadata[shared.FieldInput] = BridgeActivityInput{Originator: id.String(), Originatee: res}
 		}
 
 		return output, nil

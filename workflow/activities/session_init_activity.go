@@ -34,12 +34,12 @@ func (s SessionInitActivity) Name() string {
 }
 
 func (s SessionInitActivity) Handler() shared.ActivityFunc {
-	return func(ctx context.Context, i interface{}) (shared.WorkflowOutput, error) {
+	return func(ctx context.Context, i interface{}) (*shared.WorkflowOutput, error) {
 		logger := activity.GetLogger(ctx)
 		info := activity.GetInfo(ctx)
 		logger.Info("Executing SessionInitActivity", zap.Any("info", info))
 
-		output := shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+		output := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
 		input := SessionInitActivityInput{}
 		ok := shared.Convert(i, &input)
 

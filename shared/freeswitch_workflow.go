@@ -15,7 +15,7 @@ type FreeswitchActivity interface {
 }
 
 type FreeswitchActivityProcessor interface {
-	Process(ctx workflow.Context, metadata Metadata) (WorkflowOutput, error)
+	Process(ctx workflow.Context, metadata Metadata) (*WorkflowOutput, error)
 }
 
 type FreeswitchProcessorFactory interface {
