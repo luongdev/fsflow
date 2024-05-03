@@ -36,11 +36,17 @@ func NewOriginateActivity(fsClient *freeswitch.SocketClient) *OriginateActivity 
 }
 
 func (o *OriginateActivity) Handler() shared.ActivityFunc {
-	return func(ctx context.Context, i interface{}) (*shared.WorkflowOutput, error) {
+	return func(ctx context.Context, i shared.WorkflowInput) (*shared.WorkflowOutput, error) {
 		logger := activity.GetLogger(ctx)
-		output := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+		output := shared.NewWorkflowOutput(i.GetSessionId())
+
+		if err := i.Validate(); err != nil {
+			logger.Error("Invalid input", zap.Any("input", i), zap.Error(err))
+			return output, err
+		}
+
 		input := OriginateActivityInput{}
-		ok := shared.Convert(i, &input)
+		ok := shared.ConvertInput(i, &input)
 
 		info := activity.GetInfo(ctx)
 		logger.Info("Executing OriginateActivity", zap.Any("info", info))

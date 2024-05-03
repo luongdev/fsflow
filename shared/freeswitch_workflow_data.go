@@ -51,7 +51,7 @@ func (wi WorkflowInput) Validate() error {
 	return nil
 }
 
-type ActivityFunc func(ctx context.Context, i interface{}) (*WorkflowOutput, error)
+type ActivityFunc func(ctx context.Context, i WorkflowInput) (*WorkflowOutput, error)
 
 type WorkflowFunc func(ctx workflow.Context, i WorkflowInput) (*WorkflowOutput, error)
 

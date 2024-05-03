@@ -27,11 +27,17 @@ func NewHangupActivity(fsClient *freeswitch.SocketClient) *HangupActivity {
 }
 
 func (c *HangupActivity) Handler() shared.ActivityFunc {
-	return func(ctx context.Context, i interface{}) (*shared.WorkflowOutput, error) {
+	return func(ctx context.Context, i shared.WorkflowInput) (*shared.WorkflowOutput, error) {
 		logger := activity.GetLogger(ctx)
-		output := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+		output := shared.NewWorkflowOutput(i.GetSessionId())
+
+		if err := i.Validate(); err != nil {
+			logger.Error("Invalid input", zap.Any("input", i), zap.Error(err))
+			return output, err
+		}
+
 		input := HangupActivityInput{}
-		ok := shared.Convert(i, &input)
+		ok := shared.ConvertInput(i, &input)
 
 		if !ok {
 			logger.Error("Failed to cast input to HangupActivityInput")
