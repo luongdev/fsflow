@@ -47,13 +47,7 @@ func (p *FreeswitchActivityProcessorImpl) GetInput(metadata shared.Metadata, i i
 		return fmt.Errorf("cannot found action")
 	}
 
-	input := shared.WorkflowInput{}
-	ok := shared.Convert(metadata.GetInput(), &input)
-	if !ok || input == nil {
-		return fmt.Errorf("cannot cast input to WorkflowInput")
-	}
-
-	ok = shared.ConvertInput(input, &i)
+	ok := shared.ConvertInput(metadata.GetInput(), &i)
 	if !ok {
 		return fmt.Errorf("cannot cast input for action: %v", metadata.GetAction())
 	}

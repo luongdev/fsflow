@@ -61,8 +61,11 @@ func (m *Metadata) GetSessionId() string {
 
 func (m *Metadata) GetInput() WorkflowInput {
 	if v, ok := (*m)[FieldInput]; ok {
-		if i, ok := v.(WorkflowInput); ok {
-			return i
+		if i, ok := v.(map[string]interface{}); ok {
+			input := WorkflowInput{}
+			if ok := Convert(i, &input); ok {
+				return input
+			}
 		}
 	}
 
