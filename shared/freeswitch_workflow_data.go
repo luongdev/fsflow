@@ -27,7 +27,27 @@ const (
 	FieldInput     Field = "input"
 )
 
+var actions = map[string]Action{
+	string(ActionBridge):    ActionBridge,
+	string(ActionAnswer):    ActionAnswer,
+	string(ActionHangup):    ActionHangup,
+	string(ActionTransfer):  ActionTransfer,
+	string(ActionOriginate): ActionOriginate,
+}
+
 type Metadata map[Field]interface{}
+
+func (m *Metadata) GetAction() Action {
+	if v, ok := (*m)[FieldAction]; ok {
+		if aStr, ok := v.(string); ok {
+			if a, ok := actions[aStr]; ok {
+				return a
+			}
+		}
+	}
+
+	return ActionUnknown
+}
 
 type WorkflowInput map[Field]interface{}
 

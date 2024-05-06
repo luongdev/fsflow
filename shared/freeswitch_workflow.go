@@ -19,5 +19,5 @@ type FreeswitchActivityProcessor interface {
 }
 
 type FreeswitchProcessorFactory interface {
-	CreateActivityProcessor(s string) (FreeswitchActivityProcessor, error)
+	CreateActivityProcessor(s Action) (FreeswitchActivityProcessor, error)
 }

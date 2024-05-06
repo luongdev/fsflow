@@ -53,6 +53,7 @@ func (s SessionInitActivity) Handler() shared.ActivityFunc {
 
 		bInput, err := json.Marshal(&input)
 		if err != nil {
+			logger.Error("Failed to marshal input", zap.Error(err))
 			return output, err
 		}
 
@@ -61,6 +62,7 @@ func (s SessionInitActivity) Handler() shared.ActivityFunc {
 
 		req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, input.Initializer, bytes.NewBuffer(bInput))
 		if err != nil {
+			logger.Error("Failed to create request to init session", zap.Error(err))
 			return output, err
 		}
 		req.Header.Set("Content-Type", "application/json")
@@ -75,9 +77,14 @@ func (s SessionInitActivity) Handler() shared.ActivityFunc {
 			}
 		}(res)
 
-		if err != nil || res.StatusCode != http.StatusOK {
-			logger.Error("Failed to send request to initializer", zap.Int("status", res.StatusCode), zap.Error(err))
+		if err != nil {
+			logger.Error("Failed to send request to initializer", zap.Error(err))
 			return output, err
+		}
+
+		if res != nil && res.StatusCode != http.StatusOK {
+			logger.Error("Failed to init session", zap.Any("status", res.StatusCode))
+			return output, shared.NewWorkflowInputError("Failed to init session")
 		}
 
 		var o interface{}

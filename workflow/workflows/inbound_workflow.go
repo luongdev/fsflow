@@ -53,8 +53,9 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 
 		ctx = libworkflow.WithActivityOptions(ctx, libworkflow.ActivityOptions{
 			ScheduleToStartTimeout: time.Second,
-			StartToCloseTimeout:    input.Timeout,
+			StartToCloseTimeout:    time.Hour,
 		})
+
 		si := activities.NewSessionInitActivity(w.fsClient)
 		f := libworkflow.ExecuteActivity(ctx, si.Handler(), activities.SessionInitActivityInput{
 			ANI:         input.ANI,
@@ -89,12 +90,14 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			s.Select(ctx)
 
 			if output.Success {
-				if output.Metadata[shared.FieldAction] == shared.ActionHangup {
+				action := output.Metadata.GetAction()
+				if action == shared.ActionHangup {
 					result := &shared.WorkflowOutput{}
-					//_ = lib_workflow.ExecuteActivity(ctx, cmdActivities.HangupActivity, activities.HangupActivityInput{
-					//	SessionId:   input.SessionId,
-					//	HangupCause: "CALL_REJECTED",
-					//}).Get(ctx, &result)
+					hupActivity := activities.NewHangupActivity(w.fsClient)
+					_ = libworkflow.ExecuteActivity(ctx, hupActivity.Handler(), activities.HangupActivityInput{
+						SessionId:   input.GetSessionId(),
+						HangupCause: "CALL_REJECTED",
+					}).Get(ctx, &result)
 
 					return result, nil
 				}
