@@ -49,9 +49,6 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 		input := OriginateActivityInput{}
 		ok := shared.ConvertInput(i, &input)
 
-		info := activity.GetInfo(ctx)
-		logger.Info("Executing OriginateActivity", zap.Any("info", info))
-
 		if !ok {
 			logger.Error("Failed to cast input to OriginateActivityInput")
 			return output, shared.NewWorkflowInputError("Cannot cast input to OriginateActivityInput")
@@ -68,6 +65,7 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			AllowReject: input.AllowReject,
 			Variables:   input.Variables,
 			Extension:   input.Extension,
+			SessionId:   input.GetSessionId(),
 		})
 		if err != nil {
 			return output, err
@@ -89,6 +87,8 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 				bInput.Originator = res
 			}
 
+		} else {
+			output.Metadata[shared.FieldUniqueId] = res
 		}
 
 		return output, nil

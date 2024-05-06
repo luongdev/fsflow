@@ -10,8 +10,9 @@ import (
 )
 
 type HangupActivityInput struct {
-	SessionId   string `json:"sessionId"`
-	HangupCause string `json:"hangupCause"`
+	SessionId    string `json:"sessionId"`
+	HangupCause  string `json:"hangupCause"`
+	HangupReason string `json:"hangupReason"`
 }
 
 type HangupActivity struct {
@@ -42,6 +43,18 @@ func (c *HangupActivity) Handler() shared.ActivityFunc {
 		if !ok {
 			logger.Error("Failed to cast input to HangupActivityInput")
 			return output, fmt.Errorf("failed to cast input to HangupActivityInput")
+		}
+
+		if input.HangupReason != "" {
+			res, err := (*c.fsClient).Execute(ctx, &freeswitch.Command{
+				Uid:     input.SessionId,
+				AppName: "set",
+				AppArgs: fmt.Sprintf("hangup_reason %v", input.HangupReason),
+			})
+
+			if err != nil {
+				logger.Error("Failed to set hangup reason", zap.Error(err), zap.Any("response", res))
+			}
 		}
 
 		_, err := (*c.fsClient).Api(ctx, &freeswitch.Command{

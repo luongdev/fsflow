@@ -20,6 +20,24 @@ func NewSocketClient(conn *eslgo.Conn) *SocketClientImpl {
 	return &SocketClientImpl{conn}
 }
 
+func (s *SocketClientImpl) AllEvents(ctx context.Context) (string, error) {
+	err := s.Conn.EnableEvents(ctx)
+
+	if err != nil {
+		return "", err
+	}
+
+	return "Event plain all", nil
+}
+
+func (s *SocketClientImpl) EventListener(id string, listener EventListener) string {
+	return s.Conn.RegisterEventListener(id, func(event *eslgo.Event) {
+		if listener != nil {
+			listener(NewEvent(s, event))
+		}
+	})
+}
+
 func (s *SocketClientImpl) Execute(ctx context.Context, cmd *Command) (string, error) {
 	if cmd.Uid == "" {
 		return "", fmt.Errorf("uuid is required")
@@ -99,6 +117,8 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	input.Variables["originate_timeout"] = string(timeoutMillis)
 	input.Variables["origination_caller_id_name"] = input.ANI
 	input.Variables["origination_caller_id_number"] = input.ANI
+
+	input.Variables["sip_h_SessionId"] = input.SessionId
 
 	if input.AutoAnswer {
 		input.Variables["sip_h_Answer"] = "auto"

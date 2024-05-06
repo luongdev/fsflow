@@ -61,6 +61,24 @@ func (c *Response) Get() (string, bool) {
 	return removeUnwantedChars(res), true
 }
 
+type Event struct {
+	*eslgo.Event
+	UniqueId string
+	Domain   string
+	Client   SocketClient
+}
+
+func NewEvent(client SocketClient, event *eslgo.Event) *Event {
+	e := &Event{
+		Event:    event,
+		Client:   client,
+		UniqueId: getUniqueId(event),
+		Domain:   getDomain(event),
+	}
+
+	return e
+}
+
 type Request struct {
 	*eslgo.RawResponse
 	UniqueId string
@@ -70,10 +88,10 @@ type Request struct {
 	Client   SocketClient
 }
 
-func NewRequest(conn *eslgo.Conn, raw *eslgo.RawResponse) *Request {
+func NewRequest(client SocketClient, raw *eslgo.RawResponse) *Request {
 	r := &Request{
-		Client:      &SocketClientImpl{conn},
 		RawResponse: raw,
+		Client:      client,
 		ANI:         getANI(raw),
 		DNIS:        getDNIS(raw),
 		Domain:      getDomain(raw),
@@ -83,7 +101,12 @@ func NewRequest(conn *eslgo.Conn, raw *eslgo.RawResponse) *Request {
 	return r
 }
 
-func getDomain(raw *eslgo.RawResponse) string {
+type RawData interface {
+	HasHeader(header string) bool
+	GetHeader(header string) string
+}
+
+func getDomain(raw RawData) string {
 	if raw != nil {
 		if raw.HasHeader("variable_domain") {
 			return raw.GetHeader("variable_domain")
@@ -93,7 +116,7 @@ func getDomain(raw *eslgo.RawResponse) string {
 	return ""
 }
 
-func getANI(raw *eslgo.RawResponse) string {
+func getANI(raw RawData) string {
 	if raw != nil {
 		if raw.HasHeader("Channel-Caller-ID-Number") {
 			return raw.GetHeader("Channel-Caller-ID-Number")
@@ -107,7 +130,7 @@ func getANI(raw *eslgo.RawResponse) string {
 	return ""
 }
 
-func getDNIS(raw *eslgo.RawResponse) string {
+func getDNIS(raw RawData) string {
 	if raw != nil {
 		if raw.HasHeader("variable_sip_to_user") {
 			return raw.GetHeader("variable_sip_to_user")
@@ -121,7 +144,7 @@ func getDNIS(raw *eslgo.RawResponse) string {
 	return ""
 }
 
-func getUniqueId(raw *eslgo.RawResponse) string {
+func getUniqueId(raw RawData) string {
 	if raw != nil {
 		if raw.HasHeader("Channel-Call-UUID") {
 			return raw.GetHeader("Channel-Call-UUID")
@@ -152,8 +175,11 @@ type Originator struct {
 	Profile     string
 	Timeout     time.Duration
 	Extension   string
+	SessionId   string
 	Variables   map[string]interface{}
 }
+
+type EventListener func(req *Event)
 
 type ServerEventHandler interface {
 	OnSession(ctx context.Context, req *Request)
@@ -164,12 +190,15 @@ type SocketClient interface {
 	Originate(ctx context.Context, o *Originator) (string, error)
 	Api(ctx context.Context, cmd *Command) (string, error)
 	BgApi(ctx context.Context, cmd *Command) (string, error)
+	AllEvents(ctx context.Context) (string, error)
+	EventListener(id string, listener EventListener) string
 	Close()
 }
 
 type SocketServer interface {
 	ListenAndServe() error
 	SetEventHandler(handler ServerEventHandler)
+	BeforeSessionClose(func())
 }
 
 func removeUnwantedChars(s string) string {

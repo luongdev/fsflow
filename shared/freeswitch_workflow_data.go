@@ -25,6 +25,7 @@ const (
 	FieldMessage   Field = "message"
 	FieldSessionId Field = "sessionId"
 	FieldInput     Field = "input"
+	FieldUniqueId  Field = "uniqueId"
 )
 
 var actions = map[string]Action{

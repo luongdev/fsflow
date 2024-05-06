@@ -91,8 +91,11 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 
 			if output.Success && output.Metadata.GetAction() == shared.ActionUnknown {
 				output.Metadata[shared.FieldAction] = shared.ActionHangup
-				output.Metadata[shared.FieldInput] =
-					activities.HangupActivityInput{SessionId: i.GetSessionId(), HangupCause: "NORMAL_CLEARING"}
+				output.Metadata[shared.FieldInput] = activities.HangupActivityInput{
+					SessionId:    i.GetSessionId(),
+					HangupReason: "InboundSignalUnknown",
+					HangupCause:  "NORMAL_CLEARING",
+				}
 			}
 
 			output, err := processor.Process(ctx, output.Metadata)
