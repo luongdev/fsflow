@@ -89,18 +89,16 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 
 			s.Select(ctx)
 
-			if output.Success {
-				action := output.Metadata.GetAction()
-				if action == shared.ActionHangup {
-					result := &shared.WorkflowOutput{}
-					hupActivity := activities.NewHangupActivity(w.fsClient)
-					_ = libworkflow.ExecuteActivity(ctx, hupActivity.Handler(), activities.HangupActivityInput{
-						SessionId:   input.GetSessionId(),
-						HangupCause: "CALL_REJECTED",
-					}).Get(ctx, &result)
+			if output.Success && output.Metadata.GetAction() == shared.ActionUnknown {
+				output.Metadata[shared.FieldAction] = shared.ActionHangup
+				output.Metadata[shared.FieldInput] =
+					activities.HangupActivityInput{SessionId: i.GetSessionId(), HangupCause: "NORMAL_CLEARING"}
+			}
 
-					return result, nil
-				}
+			output, err := processor.Process(ctx, output.Metadata)
+			if err != nil || !output.Success {
+				logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))
+				return output, err
 			}
 		}
 	}

@@ -18,7 +18,7 @@ func NewHangupProcessor(client *freeswitch.SocketClient) *HangupProcessor {
 
 func (p *HangupProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
 	logger := libworkflow.GetLogger(ctx)
-	output := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+	output := shared.NewWorkflowOutput(metadata.GetSessionId())
 
 	i := activities.HangupActivityInput{}
 	err := p.GetInput(metadata, &i)

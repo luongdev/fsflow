@@ -18,7 +18,7 @@ func NewOriginateProcessor(client *freeswitch.SocketClient) *OriginateProcessor 
 
 func (p *OriginateProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
 	logger := libworkflow.GetLogger(ctx)
-	output := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+	output := shared.NewWorkflowOutput(metadata.GetSessionId())
 
 	i := activities.OriginateActivityInput{}
 	err := p.GetInput(metadata, &i)

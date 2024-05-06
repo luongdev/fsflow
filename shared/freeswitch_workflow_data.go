@@ -49,6 +49,26 @@ func (m *Metadata) GetAction() Action {
 	return ActionUnknown
 }
 
+func (m *Metadata) GetSessionId() string {
+	if v, ok := (*m)[FieldSessionId]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+
+	return ""
+}
+
+func (m *Metadata) GetInput() WorkflowInput {
+	if v, ok := (*m)[FieldInput]; ok {
+		if i, ok := v.(WorkflowInput); ok {
+			return i
+		}
+	}
+
+	return WorkflowInput{}
+}
+
 type WorkflowInput map[Field]interface{}
 
 func (wi WorkflowInput) GetSessionId() string {
@@ -85,7 +105,7 @@ func NewWorkflowOutput(sessionId string) *WorkflowOutput {
 	return &WorkflowOutput{
 		Success:   false,
 		SessionId: sessionId,
-		Metadata:  make(Metadata),
+		Metadata:  Metadata{FieldSessionId: sessionId},
 	}
 }
 

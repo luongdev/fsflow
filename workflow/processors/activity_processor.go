@@ -18,7 +18,7 @@ func NewFreeswitchActivityProcessor(client *freeswitch.SocketClient) *Freeswitch
 
 func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
 	logger := libworkflow.GetLogger(ctx)
-	o := &shared.WorkflowOutput{Success: false, Metadata: make(shared.Metadata)}
+	o := shared.NewWorkflowOutput(metadata.GetSessionId())
 	if metadata == nil || metadata.GetAction() == shared.ActionUnknown {
 		return o, shared.NewWorkflowInputError("metadata is nil")
 	}
@@ -36,10 +36,10 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metad
 	}
 
 	if o.Success && o.Metadata.GetAction() != shared.ActionUnknown {
-		return o, nil
+		return p.Process(ctx, o.Metadata)
 	}
 
-	return p.Process(ctx, o.Metadata)
+	return o, nil
 }
 
 func (p *FreeswitchActivityProcessorImpl) GetInput(metadata shared.Metadata, i interface{}) error {
@@ -48,7 +48,7 @@ func (p *FreeswitchActivityProcessorImpl) GetInput(metadata shared.Metadata, i i
 	}
 
 	input := shared.WorkflowInput{}
-	ok := shared.Convert(metadata[shared.FieldInput], &input)
+	ok := shared.Convert(metadata.GetInput(), &input)
 	if !ok || input == nil {
 		return fmt.Errorf("cannot cast input to WorkflowInput")
 	}
