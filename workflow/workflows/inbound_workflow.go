@@ -22,15 +22,15 @@ type InboundWorkflowInput struct {
 const InboundSignal = "inbound"
 
 type InboundWorkflow struct {
-	fsClient *freeswitch.SocketClient
+	p freeswitch.SocketProvider
 }
 
 func (w *InboundWorkflow) Name() string {
 	return "workflows.InboundWorkflow"
 }
 
-func NewInboundWorkflow(fsClient *freeswitch.SocketClient) *InboundWorkflow {
-	return &InboundWorkflow{fsClient: fsClient}
+func NewInboundWorkflow(p freeswitch.SocketProvider) *InboundWorkflow {
+	return &InboundWorkflow{p: p}
 }
 
 func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
@@ -56,7 +56,7 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			StartToCloseTimeout:    time.Hour,
 		})
 
-		si := activities.NewSessionInitActivity(w.fsClient)
+		si := activities.NewSessionInitActivity(w.p)
 		f := libworkflow.ExecuteActivity(ctx, si.Handler(), activities.SessionInitActivityInput{
 			ANI:         input.ANI,
 			DNIS:        input.DNIS,
@@ -71,7 +71,7 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			return output, err
 		}
 
-		processor := processors.NewFreeswitchActivityProcessor(w.fsClient)
+		processor := processors.NewFreeswitchActivityProcessor(w.p)
 		output, err := processor.Process(ctx, output.Metadata)
 		if err != nil || !output.Success {
 			logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))

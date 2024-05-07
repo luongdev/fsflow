@@ -12,7 +12,7 @@ type BridgeProcessor struct {
 	*FreeswitchActivityProcessorImpl
 }
 
-func NewBridgeProcessor(client *freeswitch.SocketClient) *BridgeProcessor {
+func NewBridgeProcessor(client freeswitch.SocketProvider) *BridgeProcessor {
 	return &BridgeProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(client)}
 }
 
@@ -27,7 +27,7 @@ func (p *BridgeProcessor) Process(ctx libworkflow.Context, metadata shared.Metad
 		return output, err
 	}
 
-	bridgeActivity := activities.NewBridgeActivity(p.FsClient)
+	bridgeActivity := activities.NewBridgeActivity(p.SocketProvider)
 	err = libworkflow.ExecuteActivity(ctx, bridgeActivity.Handler(), i).Get(ctx, &output)
 
 	return output, err

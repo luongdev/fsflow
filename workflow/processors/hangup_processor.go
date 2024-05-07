@@ -12,7 +12,7 @@ type HangupProcessor struct {
 	*FreeswitchActivityProcessorImpl
 }
 
-func NewHangupProcessor(client *freeswitch.SocketClient) *HangupProcessor {
+func NewHangupProcessor(client freeswitch.SocketProvider) *HangupProcessor {
 	return &HangupProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(client)}
 }
 
@@ -27,7 +27,7 @@ func (p *HangupProcessor) Process(ctx libworkflow.Context, metadata shared.Metad
 		return output, err
 	}
 
-	hangupActivity := activities.NewHangupActivity(p.FsClient)
+	hangupActivity := activities.NewHangupActivity(p.SocketProvider)
 	err = libworkflow.ExecuteActivity(ctx, hangupActivity.Handler(), i).Get(ctx, &output)
 
 	return output, err

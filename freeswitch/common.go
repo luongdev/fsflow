@@ -190,15 +190,30 @@ type SocketClient interface {
 	Originate(ctx context.Context, o *Originator) (string, error)
 	Api(ctx context.Context, cmd *Command) (string, error)
 	BgApi(ctx context.Context, cmd *Command) (string, error)
-	AllEvents(ctx context.Context) (string, error)
+	AllEvents(ctx context.Context) error
+	MyEvents(ctx context.Context, id string) error
 	EventListener(id string, listener EventListener) string
+	SendEvent(ctx context.Context, cmd *Command) (string, error)
+	AddFilter(ctx context.Context, header, value string) error
+	DelFilter(ctx context.Context, header, value string) error
 	Close()
 }
 
 type SocketServer interface {
+	Store() *SocketStore
 	ListenAndServe() error
 	SetEventHandler(handler ServerEventHandler)
-	BeforeSessionClose(func())
+	OnSessionClosed(func())
+}
+
+type SocketProvider interface {
+	GetClient(key string) SocketClient
+}
+
+type SocketStore interface {
+	Set(key string, client SocketClient)
+	Get(key string) (SocketClient, error)
+	Del(key string) error
 }
 
 func removeUnwantedChars(s string) string {

@@ -6,21 +6,23 @@ import (
 )
 
 type FreeswitchProcessorFactoryImpl struct {
-	fsClient *freeswitch.SocketClient
+	socketProvider freeswitch.SocketProvider
 }
 
-func NewFreeswitchProcessorFactory(fsClient *freeswitch.SocketClient) *FreeswitchProcessorFactoryImpl {
-	return &FreeswitchProcessorFactoryImpl{fsClient: fsClient}
+func NewFreeswitchProcessorFactory(provider freeswitch.SocketProvider) *FreeswitchProcessorFactoryImpl {
+	return &FreeswitchProcessorFactoryImpl{socketProvider: provider}
 }
 
 func (f *FreeswitchProcessorFactoryImpl) CreateActivityProcessor(s shared.Action) (shared.FreeswitchActivityProcessor, error) {
 	switch s {
 	case shared.ActionOriginate:
-		return NewOriginateProcessor(f.fsClient), nil
+		return NewOriginateProcessor(f.socketProvider), nil
 	case shared.ActionBridge:
-		return NewBridgeProcessor(f.fsClient), nil
+		return NewBridgeProcessor(f.socketProvider), nil
 	case shared.ActionHangup:
-		return NewHangupProcessor(f.fsClient), nil
+		return NewHangupProcessor(f.socketProvider), nil
+	case shared.ActionEvent:
+		return NewEventProcessor(f.socketProvider), nil
 
 	default:
 		return nil, shared.NewWorkflowInputError("unsupported action")

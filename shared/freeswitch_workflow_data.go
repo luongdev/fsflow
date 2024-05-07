@@ -10,8 +10,9 @@ import (
 type Action string
 
 const (
-	ActionBridge    Action = "bridge"
 	ActionAnswer    Action = "answer"
+	ActionBridge    Action = "bridge"
+	ActionEvent     Action = "event"
 	ActionHangup    Action = "hangup"
 	ActionTransfer  Action = "transfer"
 	ActionOriginate Action = "originate"
@@ -29,8 +30,9 @@ const (
 )
 
 var actions = map[string]Action{
-	string(ActionBridge):    ActionBridge,
 	string(ActionAnswer):    ActionAnswer,
+	string(ActionBridge):    ActionBridge,
+	string(ActionEvent):     ActionEvent,
 	string(ActionHangup):    ActionHangup,
 	string(ActionTransfer):  ActionTransfer,
 	string(ActionOriginate): ActionOriginate,

@@ -28,7 +28,8 @@ func NewFreeswitchSocket(c *Config) (SocketServer, SocketClient, error) {
 		c.Timeout = 10 * time.Second
 	}
 
-	server := NewSocketServer(c.ListenOn)
+	store := NewSocketStore()
+	server := NewSocketServer(c.ListenOn, store)
 
 	panicChan := make(chan error, 1)
 
@@ -66,5 +67,7 @@ func NewFreeswitchSocket(c *Config) (SocketServer, SocketClient, error) {
 		return nil, nil, err
 	}
 
-	return server, client, nil
+	store.Set(DefaultClient, &client)
+
+	return &server, &client, nil
 }

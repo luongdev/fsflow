@@ -9,11 +9,11 @@ import (
 )
 
 type FreeswitchActivityProcessorImpl struct {
-	FsClient *freeswitch.SocketClient
+	SocketProvider freeswitch.SocketProvider
 }
 
-func NewFreeswitchActivityProcessor(client *freeswitch.SocketClient) *FreeswitchActivityProcessorImpl {
-	return &FreeswitchActivityProcessorImpl{FsClient: client}
+func NewFreeswitchActivityProcessor(provider freeswitch.SocketProvider) *FreeswitchActivityProcessorImpl {
+	return &FreeswitchActivityProcessorImpl{SocketProvider: provider}
 }
 
 func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
@@ -23,7 +23,7 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metad
 		return o, shared.NewWorkflowInputError("metadata is nil")
 	}
 
-	factory := NewFreeswitchProcessorFactory(p.FsClient)
+	factory := NewFreeswitchProcessorFactory(p.SocketProvider)
 	processor, err := factory.CreateActivityProcessor(metadata.GetAction())
 	if err != nil {
 		logger.Error("Failed to create activity processor", zap.Error(err))
@@ -31,11 +31,11 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metad
 	}
 
 	o, err = processor.Process(ctx, metadata)
-	if err != nil {
-		return o, err
-	}
+	//if err != nil {
+	//	return o, err
+	//}
 
-	if o.Success && o.Metadata.GetAction() != shared.ActionUnknown {
+	if o != nil && o.Metadata.GetAction() != shared.ActionUnknown {
 		return p.Process(ctx, o.Metadata)
 	}
 

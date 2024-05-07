@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/percipia/eslgo"
+	"log"
 )
 
 var _ SocketServer = (*SocketServerImpl)(nil)
@@ -11,18 +12,24 @@ var _ SocketServer = (*SocketServerImpl)(nil)
 type SocketServerImpl struct {
 	port               uint16
 	serverEventHandler ServerEventHandler
-	beforeSessionClose func()
+	sessionClosed      func()
+	store              SocketStore
 }
 
-func (s *SocketServerImpl) BeforeSessionClose(f func()) {
+func (s *SocketServerImpl) Store() *SocketStore {
+	return &s.store
+}
+
+func (s *SocketServerImpl) OnSessionClosed(f func()) {
 	if f != nil {
-		s.beforeSessionClose = f
+		s.sessionClosed = f
 	}
 }
 
-func NewSocketServer(port uint16) *SocketServerImpl {
-	return &SocketServerImpl{
-		port: port,
+func NewSocketServer(port uint16, store SocketStore) SocketServerImpl {
+	return SocketServerImpl{
+		port:  port,
+		store: store,
 	}
 }
 
@@ -35,15 +42,28 @@ func (s *SocketServerImpl) SetEventHandler(handler ServerEventHandler) {
 func (s *SocketServerImpl) ListenAndServe() error {
 	listenAddr := fmt.Sprintf("0.0.0.0:%v", s.port)
 	err := eslgo.ListenAndServe(listenAddr, func(ctx context.Context, conn *eslgo.Conn, connectResponse *eslgo.RawResponse) {
+		client := NewSocketClient(conn)
+		req := NewRequest(&client, connectResponse)
+
+		s.store.Set(req.UniqueId, &client)
 		if s.serverEventHandler != nil {
-			client := NewSocketClient(conn)
-
-			s.serverEventHandler.OnSession(ctx, NewRequest(client, connectResponse))
-
-			if s.beforeSessionClose != nil {
-				s.beforeSessionClose()
-			}
+			go s.serverEventHandler.OnSession(ctx, req)
 		}
+
+		select {
+		case <-ctx.Done():
+			if s.sessionClosed != nil {
+				s.sessionClosed()
+			}
+
+			err := s.store.Del(req.UniqueId)
+			if err != nil {
+				log.Fatalf("Failed to delete session %v: %v", req.UniqueId, err)
+			}
+			break
+		}
+
+		log.Printf("Outbound connection for session %v closed", req.UniqueId)
 	})
 
 	return err

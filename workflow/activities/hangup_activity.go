@@ -16,15 +16,15 @@ type HangupActivityInput struct {
 }
 
 type HangupActivity struct {
-	fsClient *freeswitch.SocketClient
+	p freeswitch.SocketProvider
 }
 
 func (c *HangupActivity) Name() string {
 	return "activities.HangupActivity"
 }
 
-func NewHangupActivity(fsClient *freeswitch.SocketClient) *HangupActivity {
-	return &HangupActivity{fsClient: fsClient}
+func NewHangupActivity(p freeswitch.SocketProvider) *HangupActivity {
+	return &HangupActivity{p: p}
 }
 
 func (c *HangupActivity) Handler() shared.ActivityFunc {
@@ -37,6 +37,8 @@ func (c *HangupActivity) Handler() shared.ActivityFunc {
 			return output, err
 		}
 
+		client := c.p.GetClient(i.GetSessionId())
+
 		input := HangupActivityInput{}
 		ok := shared.ConvertInput(i, &input)
 
@@ -46,7 +48,7 @@ func (c *HangupActivity) Handler() shared.ActivityFunc {
 		}
 
 		if input.HangupReason != "" {
-			res, err := (*c.fsClient).Execute(ctx, &freeswitch.Command{
+			res, err := client.Execute(ctx, &freeswitch.Command{
 				Uid:     input.SessionId,
 				AppName: "set",
 				AppArgs: fmt.Sprintf("hangup_reason %v", input.HangupReason),
@@ -57,7 +59,7 @@ func (c *HangupActivity) Handler() shared.ActivityFunc {
 			}
 		}
 
-		_, err := (*c.fsClient).Api(ctx, &freeswitch.Command{
+		_, err := client.Api(ctx, &freeswitch.Command{
 			AppName: "uuid_kill",
 			AppArgs: fmt.Sprintf("%v %v", input.SessionId, input.HangupCause),
 		})

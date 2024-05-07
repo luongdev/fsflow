@@ -16,25 +16,83 @@ type SocketClientImpl struct {
 	*eslgo.Conn
 }
 
-func NewSocketClient(conn *eslgo.Conn) *SocketClientImpl {
-	return &SocketClientImpl{conn}
+func NewSocketClient(conn *eslgo.Conn) SocketClientImpl {
+	return SocketClientImpl{Conn: conn}
 }
 
-func (s *SocketClientImpl) AllEvents(ctx context.Context) (string, error) {
-	err := s.Conn.EnableEvents(ctx)
+func (s *SocketClientImpl) AllEvents(ctx context.Context) error {
+	raw, err := s.Conn.SendCommand(ctx, &command.Event{
+		Format: "plain",
+		Listen: []string{"ALL"},
+	})
 
 	if err != nil {
-		return "", err
+		return err
+	}
+	res, ok := NewResponse(raw).Get()
+	if !ok {
+		return fmt.Errorf("failed to listen to all events: %v", res)
 	}
 
-	return "Event plain all", nil
+	return nil
+}
+
+func (s *SocketClientImpl) MyEvents(ctx context.Context, id string) error {
+	raw, err := s.Conn.SendCommand(ctx, &command.MyEvents{Format: "plain", UUID: id})
+
+	if err != nil {
+		return err
+	}
+	res, ok := NewResponse(raw).Get()
+	if !ok {
+		return fmt.Errorf("failed to listen to  myevents: %v", res)
+	}
+
+	return nil
+}
+
+func (s *SocketClientImpl) AddFilter(ctx context.Context, header, value string) error {
+	raw, err := s.Conn.SendCommand(ctx, &command.Filter{
+		EventHeader: header,
+		FilterValue: value,
+		Delete:      false,
+	})
+
+	if err != nil {
+		return err
+	}
+	res, ok := NewResponse(raw).Get()
+	if !ok {
+		return fmt.Errorf("failed to add filter events: %v", res)
+	}
+
+	return nil
+}
+
+func (s *SocketClientImpl) DelFilter(ctx context.Context, header, value string) error {
+	raw, err := s.Conn.SendCommand(ctx, &command.Filter{
+		EventHeader: header,
+		FilterValue: value,
+		Delete:      true,
+	})
+
+	if err != nil {
+		return err
+	}
+	res, ok := NewResponse(raw).Get()
+	if !ok {
+		return fmt.Errorf("failed to delete filter events: %v", res)
+	}
+
+	return nil
 }
 
 func (s *SocketClientImpl) EventListener(id string, listener EventListener) string {
+	if listener == nil {
+		return ""
+	}
 	return s.Conn.RegisterEventListener(id, func(event *eslgo.Event) {
-		if listener != nil {
-			listener(NewEvent(s, event))
-		}
+		listener(NewEvent(s, event))
 	})
 }
 
@@ -146,6 +204,27 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 
 	aleg := eslgo.Leg{CallURL: fmt.Sprintf("sofia/%v/%v@%v", input.Profile, input.DNIS, input.Gateway)}
 	raw, err := s.Conn.OriginateCall(ctx, input.Background, aleg, bleg, vars)
+	if err != nil {
+		return "", err
+	}
+
+	res, ok := NewResponse(raw).Get()
+	if !ok {
+		return res, fmt.Errorf("failed to originate call: %v", res)
+	}
+
+	return res, nil
+}
+
+func (s *SocketClientImpl) SendEvent(ctx context.Context, cmd *Command) (string, error) {
+	raw, err := s.Conn.SendCommand(ctx, &command.SendEvent{
+		Name: "CUSTOM",
+		Headers: map[string][]string{
+			"Event-Subclass": {"callmanager::event"},
+			"Session-Id":     {cmd.Uid},
+		},
+	})
+
 	if err != nil {
 		return "", err
 	}

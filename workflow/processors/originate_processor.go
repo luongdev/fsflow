@@ -1,6 +1,7 @@
 package processors
 
 import (
+	"context"
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"github.com/luongdev/fsflow/workflow/activities"
@@ -12,7 +13,7 @@ type OriginateProcessor struct {
 	*FreeswitchActivityProcessorImpl
 }
 
-func NewOriginateProcessor(client *freeswitch.SocketClient) *OriginateProcessor {
+func NewOriginateProcessor(client freeswitch.SocketProvider) *OriginateProcessor {
 	return &OriginateProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(client)}
 }
 
@@ -27,7 +28,26 @@ func (p *OriginateProcessor) Process(ctx libworkflow.Context, metadata shared.Me
 		return output, err
 	}
 
-	originateActivity := activities.NewOriginateActivity(p.FsClient)
+	client := p.SocketProvider.GetClient(i.GetSessionId())
+
+	if i.Background {
+		bCtx, cancel := context.WithTimeout(context.Background(), i.Timeout)
+		err := client.AllEvents(bCtx)
+		err = client.MyEvents(bCtx, i.GetSessionId())
+		if err != nil {
+			logger.Error("Failed to add filter", zap.Error(err))
+			cancel()
+		}
+
+		defer cancel()
+	}
+
+	ctx = libworkflow.WithActivityOptions(ctx, libworkflow.ActivityOptions{
+		StartToCloseTimeout:    i.Timeout,
+		ScheduleToStartTimeout: 1,
+	})
+
+	originateActivity := activities.NewOriginateActivity(p.SocketProvider)
 	err = libworkflow.ExecuteActivity(ctx, originateActivity.Handler(), i).Get(ctx, &output)
 
 	return output, err

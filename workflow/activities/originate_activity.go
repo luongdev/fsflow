@@ -2,6 +2,7 @@ package activities
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
@@ -22,18 +23,20 @@ type OriginateActivityInput struct {
 	Direction    freeswitch.Direction   `json:"direction"`
 	Variables    map[string]interface{} `json:"variables"`
 	Extension    string                 `json:"extension"`
+	Background   bool                   `json:"background"`
+	Callback     string                 `json:"callback"`
 }
 
 type OriginateActivity struct {
-	fsClient *freeswitch.SocketClient
+	p freeswitch.SocketProvider
 }
 
 func (o *OriginateActivity) Name() string {
 	return "activities.OriginateActivity"
 }
 
-func NewOriginateActivity(fsClient *freeswitch.SocketClient) *OriginateActivity {
-	return &OriginateActivity{fsClient: fsClient}
+func NewOriginateActivity(p freeswitch.SocketProvider) *OriginateActivity {
+	return &OriginateActivity{p: p}
 }
 
 func (o *OriginateActivity) Handler() shared.ActivityFunc {
@@ -41,10 +44,7 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 		logger := activity.GetLogger(ctx)
 		output := shared.NewWorkflowOutput(i.GetSessionId())
 
-		if err := i.Validate(); err != nil {
-			logger.Error("Invalid input", zap.Any("input", i), zap.Error(err))
-			return output, err
-		}
+		client := o.p.GetClient(i.GetSessionId())
 
 		input := OriginateActivityInput{}
 		ok := shared.ConvertInput(i, &input)
@@ -54,7 +54,15 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			return output, shared.NewWorkflowInputError("Cannot cast input to OriginateActivityInput")
 		}
 
-		res, err := (*o.fsClient).Originate(ctx, &freeswitch.Originator{
+		if input.GetSessionId() == "" {
+			s, err := uuid.NewRandom()
+			if err == nil {
+				input.WorkflowInput[shared.FieldSessionId] = s.String()
+			}
+		}
+
+		res, err := client.Originate(ctx, &freeswitch.Originator{
+			SessionId:   input.GetSessionId(),
 			Timeout:     input.Timeout,
 			ANI:         input.DialedNumber,
 			DNIS:        input.Destination,
@@ -65,20 +73,33 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			AllowReject: input.AllowReject,
 			Variables:   input.Variables,
 			Extension:   input.Extension,
-			SessionId:   input.GetSessionId(),
+			Background:  input.Background,
 		})
 		if err != nil {
-			return output, err
+			//output.Metadata[shared.FieldAction] = shared.ActionEvent
+			//output.Metadata[shared.FieldInput] = EventActivityInput{
+			//	WorkflowInput: input.WorkflowInput,
+			//	Headers: map[string]interface{}{
+			//		"Session-Id": input.GetSessionId(),
+			//		"Response":   res,
+			//		"Error":      err.Error(),
+			//	},
+			//}
+
+			logger.Error("Failed to originate call", zap.Error(err))
+
+			return output, nil
 		}
 
 		output.Success = true
+		output.Metadata[shared.FieldUniqueId] = res
 
-		if input.Extension == "" {
+		if input.Extension == "" && input.GetSessionId() != "" {
 			output.Metadata[shared.FieldAction] = shared.ActionBridge
 			bInput := BridgeActivityInput{
 				Originator:    input.GetSessionId(),
 				Originatee:    res,
-				WorkflowInput: shared.WorkflowInput{shared.FieldSessionId: i.GetSessionId()},
+				WorkflowInput: input.WorkflowInput,
 			}
 			output.Metadata[shared.FieldInput] = bInput
 
@@ -87,8 +108,6 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 				bInput.Originator = res
 			}
 
-		} else {
-			output.Metadata[shared.FieldUniqueId] = res
 		}
 
 		return output, nil

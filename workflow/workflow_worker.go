@@ -16,14 +16,14 @@ import (
 )
 
 type FreeswitchWorkerOptions struct {
-	FsClient *freeswitch.SocketClient
-	Domain   string
+	Domain         string
+	SocketProvider freeswitch.SocketProvider
 }
 
 type FreeswitchWorker struct {
 	worker.Worker
-	fsClient      *freeswitch.SocketClient
-	CadenceClient *workflowserviceclient.Interface
+	socketProvider freeswitch.SocketProvider
+	CadenceClient  *workflowserviceclient.Interface
 
 	workflows  []shared.FreeswitchWorkflow
 	activities []shared.FreeswitchActivity
@@ -54,19 +54,20 @@ func NewFreeswitchWorker(c *Config, opts *FreeswitchWorkerOptions) (*FreeswitchW
 	w := worker.New(client, opts.Domain, c.TaskList, workerOptions)
 
 	fsWorker := &FreeswitchWorker{
-		Worker:        w,
-		CadenceClient: &client,
-		fsClient:      opts.FsClient,
-		workflows:     make([]shared.FreeswitchWorkflow, 0),
-		activities:    make([]shared.FreeswitchActivity, 0),
+		Worker:         w,
+		CadenceClient:  &client,
+		socketProvider: opts.SocketProvider,
+		workflows:      make([]shared.FreeswitchWorkflow, 0),
+		activities:     make([]shared.FreeswitchActivity, 0),
 	}
 
-	fsWorker.AddWorkflow(workflows.NewInboundWorkflow(opts.FsClient))
+	fsWorker.AddWorkflow(workflows.NewInboundWorkflow(opts.SocketProvider))
 
-	fsWorker.AddActivity(activities.NewBridgeActivity(opts.FsClient))
-	fsWorker.AddActivity(activities.NewHangupActivity(opts.FsClient))
-	fsWorker.AddActivity(activities.NewOriginateActivity(opts.FsClient))
-	fsWorker.AddActivity(activities.NewSessionInitActivity(opts.FsClient))
+	fsWorker.AddActivity(activities.NewEventActivity(opts.SocketProvider))
+	fsWorker.AddActivity(activities.NewBridgeActivity(opts.SocketProvider))
+	fsWorker.AddActivity(activities.NewHangupActivity(opts.SocketProvider))
+	fsWorker.AddActivity(activities.NewOriginateActivity(opts.SocketProvider))
+	fsWorker.AddActivity(activities.NewSessionInitActivity(opts.SocketProvider))
 
 	return fsWorker, nil
 }

@@ -22,11 +22,11 @@ type SessionInitActivityInput struct {
 }
 
 type SessionInitActivity struct {
-	fsClient *freeswitch.SocketClient
+	p freeswitch.SocketProvider
 }
 
-func NewSessionInitActivity(fsClient *freeswitch.SocketClient) *SessionInitActivity {
-	return &SessionInitActivity{fsClient: fsClient}
+func NewSessionInitActivity(p freeswitch.SocketProvider) *SessionInitActivity {
+	return &SessionInitActivity{p: p}
 }
 
 func (s SessionInitActivity) Name() string {

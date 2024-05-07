@@ -17,15 +17,15 @@ type BridgeActivityInput struct {
 }
 
 type BridgeActivity struct {
-	fsClient *freeswitch.SocketClient
+	p freeswitch.SocketProvider
 }
 
 func (c *BridgeActivity) Name() string {
 	return "activities.BridgeActivity"
 }
 
-func NewBridgeActivity(fsClient *freeswitch.SocketClient) *BridgeActivity {
-	return &BridgeActivity{fsClient: fsClient}
+func NewBridgeActivity(p freeswitch.SocketProvider) *BridgeActivity {
+	return &BridgeActivity{p: p}
 }
 
 func (c *BridgeActivity) Handler() shared.ActivityFunc {
@@ -38,6 +38,8 @@ func (c *BridgeActivity) Handler() shared.ActivityFunc {
 			return output, err
 		}
 
+		client := c.p.GetClient(i.GetSessionId())
+
 		input := BridgeActivityInput{}
 		ok := shared.ConvertInput(i, &input)
 
@@ -46,7 +48,7 @@ func (c *BridgeActivity) Handler() shared.ActivityFunc {
 			return output, shared.NewWorkflowInputError("Cannot cast input to BridgeActivityInput")
 		}
 
-		res, err := (*c.fsClient).Api(ctx, &freeswitch.Command{
+		res, err := client.Api(ctx, &freeswitch.Command{
 			AppName: "uuid_bridge",
 			AppArgs: fmt.Sprintf("%v %v", input.Originator, input.Originatee),
 		})
