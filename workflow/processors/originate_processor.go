@@ -1,12 +1,17 @@
 package processors
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"github.com/luongdev/fsflow/workflow/activities"
 	libworkflow "go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
+	"log"
+	"net/http"
+	"time"
 )
 
 type OriginateProcessor struct {
@@ -28,29 +33,81 @@ func (p *OriginateProcessor) Process(ctx libworkflow.Context, metadata shared.Me
 		return output, err
 	}
 
-	client := p.SocketProvider.GetClient(i.GetSessionId())
-
-	if i.Background {
-		bCtx, cancel := context.WithTimeout(context.Background(), i.Timeout)
-		err := client.AllEvents(bCtx)
-		err = client.MyEvents(bCtx, i.GetSessionId())
-		if err != nil {
-			logger.Error("Failed to add filter", zap.Error(err))
-			cancel()
-		}
-
-		defer cancel()
-	}
-
 	ctx = libworkflow.WithActivityOptions(ctx, libworkflow.ActivityOptions{
 		StartToCloseTimeout:    i.Timeout,
 		ScheduleToStartTimeout: 1,
 	})
 
-	originateActivity := activities.NewOriginateActivity(p.SocketProvider)
-	err = libworkflow.ExecuteActivity(ctx, originateActivity.Handler(), i).Get(ctx, &output)
+	origActivity := activities.NewOriginateActivity(p.SocketProvider)
+	err = libworkflow.ExecuteActivity(ctx, origActivity.Handler(), i).Get(ctx, &output)
 
-	return output, err
+	if err != nil {
+		logger.Error("Failed to execute originate activity", zap.Error(err))
+		return output, err
+	}
+
+	if output.Success {
+		uid, ok := output.Metadata[shared.FieldUniqueId].(string)
+		if ok && uid != "" && !i.Background && i.Extension != "" && i.GetSessionId() != "" {
+			output.Metadata[shared.FieldAction] = shared.ActionBridge
+			bInput := activities.BridgeActivityInput{
+				Originator:    i.GetSessionId(),
+				Originatee:    uid,
+				WorkflowInput: i.WorkflowInput,
+			}
+			output.Metadata[shared.FieldInput] = bInput
+
+			if i.Direction == freeswitch.Outbound {
+				bInput.Originatee = i.GetSessionId()
+				bInput.Originator = uid
+			}
+		}
+	}
+
+	go func() {
+		err := p.sendCallback(i.Callback, output)
+		if err != nil {
+			logger.Error("Failed to send callback", zap.Error(err))
+		}
+	}()
+
+	return output, nil
+}
+
+func (p *OriginateProcessor) sendCallback(url string, i interface{}) error {
+	bInput, err := json.Marshal(&i)
+	if err != nil {
+		return err
+	}
+
+	reqCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, url, bytes.NewBuffer(bInput))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	defer func(res *http.Response) {
+		if res != nil && res.Body != nil {
+			err := res.Body.Close()
+			if err != nil {
+				log.Fatalf("failed to close response body %v", err)
+			}
+		}
+	}(res)
+
+	if err != nil {
+		return err
+	}
+
+	if res != nil && res.StatusCode != http.StatusOK {
+		return err
+	}
+
+	return nil
 }
 
 var _ shared.FreeswitchActivityProcessor = (*OriginateProcessor)(nil)

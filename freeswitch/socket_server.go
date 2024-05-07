@@ -45,9 +45,31 @@ func (s *SocketServerImpl) ListenAndServe() error {
 		client := NewSocketClient(conn)
 		req := NewRequest(&client, connectResponse)
 
+		go client.Execute(ctx, &Command{AppName: "answer", Uid: req.UniqueId})
+		_, _ = client.Execute(ctx, &Command{
+			AppName: "multiset",
+			Uid:     req.UniqueId,
+			AppArgs: fmt.Sprintf("park_after_bridge=true session_id=%v", req.UniqueId),
+		})
+
 		s.store.Set(req.UniqueId, &client)
 		if s.serverEventHandler != nil {
 			go s.serverEventHandler.OnSession(ctx, req)
+		}
+
+		if s.serverEventHandler.OnEvent != nil {
+			client.AllEvents(ctx)
+			client.AddFilter(ctx, "variable_session_id", req.UniqueId)
+
+			client.EventListener("ALL", func(req *Event) {
+				s.serverEventHandler.OnEvent(ctx, req)
+
+				go func() {
+					if r := recover(); r != nil {
+						log.Fatalf("Recovered from panic: %v", r)
+					}
+				}()
+			})
 		}
 
 		select {

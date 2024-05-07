@@ -73,32 +73,44 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 
 		processor := processors.NewFreeswitchActivityProcessor(w.p)
 		output, err := processor.Process(ctx, output.Metadata)
-		if err != nil || !output.Success {
+		if err != nil {
 			logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))
-			return output, err
 		}
 
+		m := shared.Metadata{}
 		signalChan := libworkflow.GetSignalChannel(ctx, InboundSignal)
 		for {
 			s := libworkflow.NewSelector(ctx)
 			s.AddReceive(signalChan, func(ch libworkflow.Channel, ok bool) {
 				if ok {
-					ch.Receive(ctx, output)
+					ch.Receive(ctx, &m)
 				}
 			})
 
 			s.Select(ctx)
 
-			if output.Success && output.Metadata.GetAction() == shared.ActionUnknown {
+			if m.GetAction() == shared.ActionUnknown {
 				output.Metadata[shared.FieldAction] = shared.ActionHangup
 				output.Metadata[shared.FieldInput] = activities.HangupActivityInput{
 					SessionId:    i.GetSessionId(),
 					HangupReason: "InboundSignalUnknown",
 					HangupCause:  "NORMAL_CLEARING",
 				}
+			} else {
+				//ha := activities.NewHangupActivity(w.p)
+				//err = libworkflow.ExecuteActivity(ctx, ha.Handler(), activities.HangupActivityInput{
+				//	SessionId:    i.GetSessionId(),
+				//	HangupReason: "InboundSignalUnknown",
+				//	HangupCause:  "NORMAL_CLEARING",
+				//}).Get(ctx, output)
+				//
+				//if err != nil || !output.Success {
+				//	logger.Error("Failed to execute HangupActivity", zap.Any("output", output), zap.Error(err))
+				//	return output, err
+				//}
 			}
 
-			output, err := processor.Process(ctx, output.Metadata)
+			output, err := processor.Process(ctx, m)
 			if err != nil || !output.Success {
 				logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))
 				return output, err

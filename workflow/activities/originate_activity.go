@@ -63,6 +63,7 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 
 		res, err := client.Originate(ctx, &freeswitch.Originator{
 			SessionId:   input.GetSessionId(),
+			Callback:    input.Callback,
 			Timeout:     input.Timeout,
 			ANI:         input.DialedNumber,
 			DNIS:        input.Destination,
@@ -76,39 +77,12 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			Background:  input.Background,
 		})
 		if err != nil {
-			//output.Metadata[shared.FieldAction] = shared.ActionEvent
-			//output.Metadata[shared.FieldInput] = EventActivityInput{
-			//	WorkflowInput: input.WorkflowInput,
-			//	Headers: map[string]interface{}{
-			//		"Session-Id": input.GetSessionId(),
-			//		"Response":   res,
-			//		"Error":      err.Error(),
-			//	},
-			//}
-
 			logger.Error("Failed to originate call", zap.Error(err))
-
 			return output, nil
 		}
 
 		output.Success = true
 		output.Metadata[shared.FieldUniqueId] = res
-
-		if input.Extension == "" && input.GetSessionId() != "" {
-			output.Metadata[shared.FieldAction] = shared.ActionBridge
-			bInput := BridgeActivityInput{
-				Originator:    input.GetSessionId(),
-				Originatee:    res,
-				WorkflowInput: input.WorkflowInput,
-			}
-			output.Metadata[shared.FieldInput] = bInput
-
-			if input.Direction == freeswitch.Outbound {
-				bInput.Originatee = input.GetSessionId()
-				bInput.Originator = res
-			}
-
-		}
 
 		return output, nil
 	}

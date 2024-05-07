@@ -63,17 +63,19 @@ func (c *Response) Get() (string, bool) {
 
 type Event struct {
 	*eslgo.Event
-	UniqueId string
-	Domain   string
-	Client   SocketClient
+	UniqueId  string
+	SessionId string
+	Domain    string
+	Client    SocketClient
 }
 
 func NewEvent(client SocketClient, event *eslgo.Event) *Event {
 	e := &Event{
-		Event:    event,
-		Client:   client,
-		UniqueId: getUniqueId(event),
-		Domain:   getDomain(event),
+		Event:     event,
+		Client:    client,
+		UniqueId:  getUniqueId(event),
+		Domain:    getDomain(event),
+		SessionId: getSessionId(event),
 	}
 
 	return e
@@ -81,11 +83,12 @@ func NewEvent(client SocketClient, event *eslgo.Event) *Event {
 
 type Request struct {
 	*eslgo.RawResponse
-	UniqueId string
-	ANI      string
-	DNIS     string
-	Domain   string
-	Client   SocketClient
+	UniqueId  string
+	SessionId string
+	ANI       string
+	DNIS      string
+	Domain    string
+	Client    SocketClient
 }
 
 func NewRequest(client SocketClient, raw *eslgo.RawResponse) *Request {
@@ -97,6 +100,12 @@ func NewRequest(client SocketClient, raw *eslgo.RawResponse) *Request {
 		Domain:      getDomain(raw),
 		UniqueId:    getUniqueId(raw),
 	}
+
+	sid := getSessionId(raw)
+	if sid == "" {
+		sid = r.UniqueId
+	}
+	r.SessionId = sid
 
 	return r
 }
@@ -158,6 +167,20 @@ func getUniqueId(raw RawData) string {
 	return ""
 }
 
+func getSessionId(raw RawData) string {
+	if raw != nil {
+		if raw.HasHeader("variable_session_id") {
+			return raw.GetHeader("variable_session_id")
+		}
+
+		if raw.HasHeader("variable_sip_h_session_id") {
+			return raw.GetHeader("variable_sip_h_session_id")
+		}
+	}
+
+	return ""
+}
+
 type Command struct {
 	AppName string `json:"appName"`
 	AppArgs string `json:"appArgs"`
@@ -168,6 +191,7 @@ type Originator struct {
 	AutoAnswer  bool
 	AllowReject bool
 	Background  bool
+	Callback    string
 	Direction   Direction
 	ANI         string
 	DNIS        string
@@ -183,6 +207,8 @@ type EventListener func(req *Event)
 
 type ServerEventHandler interface {
 	OnSession(ctx context.Context, req *Request)
+
+	OnEvent(ctx context.Context, req *Event)
 }
 
 type SocketClient interface {

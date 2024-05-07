@@ -12,6 +12,13 @@ import (
 
 var _ SocketClient = (*SocketClientImpl)(nil)
 
+type Filter struct {
+}
+
+func (f *Filter) BuildMessage() string {
+	return "filter "
+}
+
 type SocketClientImpl struct {
 	*eslgo.Conn
 }
@@ -176,7 +183,10 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	input.Variables["origination_caller_id_name"] = input.ANI
 	input.Variables["origination_caller_id_number"] = input.ANI
 
-	input.Variables["sip_h_SessionId"] = input.SessionId
+	input.Variables["session_id"] = input.SessionId
+	input.Variables["sip_h_Session-ID"] = input.SessionId
+
+	input.Variables["origination_callback"] = input.Callback
 
 	if input.AutoAnswer {
 		input.Variables["sip_h_Answer"] = "auto"
@@ -188,6 +198,7 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	} else {
 		input.Variables["sip_h_Reject"] = "deny"
 	}
+	input.Variables["Direction"] = string(input.Direction)
 	input.Variables["sip_h_Direction"] = string(input.Direction)
 	var bleg eslgo.Leg
 
