@@ -2,11 +2,12 @@ package workflows
 
 import (
 	"github.com/luongdev/fsflow/errors"
-	"github.com/luongdev/fsflow/provider"
+	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/session"
+	"github.com/luongdev/fsflow/session/activities"
+	"github.com/luongdev/fsflow/session/processors"
 	"github.com/luongdev/fsflow/shared"
-	"github.com/luongdev/fsflow/workflow/activities"
-	"github.com/luongdev/fsflow/workflow/processors"
-	libworkflow "go.uber.org/cadence/workflow"
+	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 	"time"
 )
@@ -23,14 +24,18 @@ type InboundWorkflowInput struct {
 const InboundSignal = "inbound"
 
 type InboundWorkflow struct {
-	p provider.SocketProvider
+	sP freeswitch.SocketProvider
+	aP session.ActivityProvider
+
 	r shared.WorkflowQueryResult
 	e error
 }
 
 func (w *InboundWorkflow) QueryResult(r shared.WorkflowQueryResult, e error) {
 	if r != nil {
-		w.r = r
+		for k, v := range r {
+			r[k] = v
+		}
 	}
 
 	if e != nil {
@@ -38,25 +43,27 @@ func (w *InboundWorkflow) QueryResult(r shared.WorkflowQueryResult, e error) {
 	}
 }
 
-func (w *InboundWorkflow) SocketProvider() provider.SocketProvider {
-	return w.p
+func (w *InboundWorkflow) SocketProvider() freeswitch.SocketProvider {
+	return w.sP
 }
+
 func (w *InboundWorkflow) Name() string {
 	return "workflows.InboundWorkflow"
 }
 
-func NewInboundWorkflow(p provider.SocketProvider) *InboundWorkflow {
-	w := &InboundWorkflow{p: p}
-	w.QueryResult(shared.WorkflowQueryResult{}, nil)
-
-	return w
+func NewInboundWorkflow(sP freeswitch.SocketProvider, aP session.ActivityProvider) *InboundWorkflow {
+	return &InboundWorkflow{sP: sP, aP: aP}
 }
 
 func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
-	return func(ctx libworkflow.Context, i shared.WorkflowInput) (*shared.WorkflowOutput, error) {
-		logger := libworkflow.GetLogger(ctx)
+	return func(ctx workflow.Context, i shared.WorkflowInput) (*shared.WorkflowOutput, error) {
+		logger := workflow.GetLogger(ctx)
 
-		err := libworkflow.SetQueryHandler(ctx, string(shared.QuerySession), shared.NewQueryHandler(w.r, w.e))
+		r := shared.WorkflowQueryResult{}
+		var e error
+		w.QueryResult(r, e)
+
+		err := workflow.SetQueryHandler(ctx, string(shared.QuerySession), shared.NewQueryHandler(r, e))
 		if err != nil {
 			logger.Error("Failed to set query handler", zap.Error(err))
 		}
@@ -75,11 +82,11 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			return output, errors.NewWorkflowInputError("Cannot cast input to InboundWorkflowInput")
 		}
 
-		ctx = libworkflow.WithActivityOptions(ctx,
-			libworkflow.ActivityOptions{ScheduleToStartTimeout: time.Second, StartToCloseTimeout: input.Timeout})
+		ctx = workflow.WithActivityOptions(ctx,
+			workflow.ActivityOptions{ScheduleToStartTimeout: time.Second, StartToCloseTimeout: input.Timeout})
 
-		si := activities.NewSessionInitActivity(w.p)
-		f := libworkflow.ExecuteActivity(ctx, si.Handler(), activities.SessionInitActivityInput{
+		si := w.aP.GetActivity("activities.SessionInitActivity")
+		f := workflow.ExecuteActivity(ctx, si.Handler(), activities.SessionInitActivityInput{
 			ANI:         input.ANI,
 			DNIS:        input.DNIS,
 			Domain:      input.Domain,
@@ -93,20 +100,20 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			return output, err
 		}
 
-		processor := processors.NewFreeswitchActivityProcessor(w)
+		processor := processors.NewFreeswitchActivityProcessor(w, w.aP)
 		output, err = processor.Process(ctx, output.Metadata)
 		if err != nil {
 			logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))
 		}
 
-		w.r[shared.FieldAction] = output.Metadata.GetAction()
-		w.r[shared.FieldInput] = output.Metadata.GetInput()
+		r[shared.FieldAction] = output.Metadata.GetAction()
+		r[shared.FieldInput] = output.Metadata.GetInput()
 
 		m := shared.Metadata{}
-		signalChan := libworkflow.GetSignalChannel(ctx, InboundSignal)
+		signalChan := workflow.GetSignalChannel(ctx, InboundSignal)
 		for {
-			s := libworkflow.NewSelector(ctx)
-			s.AddReceive(signalChan, func(ch libworkflow.Channel, ok bool) {
+			s := workflow.NewSelector(ctx)
+			s.AddReceive(signalChan, func(ch workflow.Channel, ok bool) {
 				if ok {
 					ch.Receive(ctx, &m)
 				}
@@ -114,8 +121,8 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 
 			s.Select(ctx)
 
-			w.r[shared.FieldAction] = m.GetAction()
-			w.r[shared.FieldInput] = m.GetInput()
+			r[shared.FieldAction] = m.GetAction()
+			r[shared.FieldInput] = m.GetInput()
 
 			if m.GetAction() == shared.ActionUnknown {
 				//output.Metadata[shared.FieldAction] = shared.ActionHangup
@@ -126,8 +133,8 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 				//}
 				logger.Warn("Unknown signal. Waiting for other signals ...", zap.Any("metadata", m))
 			} else {
-				//ha := activities.NewHangupActivity(w.p)
-				//err = libworkflow.ExecuteActivity(ctx, ha.Handler(), activities.HangupActivityInput{
+				//ha := activities.NewHangupActivity(w.sP)
+				//err = workflow.ExecuteActivity(ctx, ha.Handler(), activities.HangupActivityInput{
 				//	SessionId:    i.GetSessionId(),
 				//	HangupReason: "InboundSignalUnknown",
 				//	HangupCause:  "NORMAL_CLEARING",
@@ -145,8 +152,8 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 				//return output, err
 				w.e = err
 			} else {
-				w.r[shared.FieldAction] = output.Metadata.GetAction()
-				w.r[shared.FieldInput] = output.Metadata.GetInput()
+				r[shared.FieldAction] = output.Metadata.GetAction()
+				r[shared.FieldInput] = output.Metadata.GetInput()
 			}
 		}
 	}

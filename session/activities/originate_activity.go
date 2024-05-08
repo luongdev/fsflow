@@ -5,7 +5,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/luongdev/fsflow/errors"
 	"github.com/luongdev/fsflow/freeswitch"
-	"github.com/luongdev/fsflow/provider"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/zap"
@@ -30,14 +29,16 @@ type OriginateActivityInput struct {
 }
 
 type OriginateActivity struct {
-	p provider.SocketProvider
+	p freeswitch.SocketProvider
 }
+
+const OriginateActivityName = "activities.OriginateActivity"
 
 func (o *OriginateActivity) Name() string {
-	return "activities.OriginateActivity"
+	return OriginateActivityName
 }
 
-func NewOriginateActivity(p provider.SocketProvider) *OriginateActivity {
+func NewOriginateActivity(p freeswitch.SocketProvider) *OriginateActivity {
 	return &OriginateActivity{p: p}
 }
 

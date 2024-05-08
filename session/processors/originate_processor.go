@@ -5,9 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/session"
+	"github.com/luongdev/fsflow/session/activities"
 	"github.com/luongdev/fsflow/shared"
-	"github.com/luongdev/fsflow/workflow/activities"
-	libworkflow "go.uber.org/cadence/workflow"
+	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
@@ -18,12 +19,12 @@ type OriginateProcessor struct {
 	*FreeswitchActivityProcessorImpl
 }
 
-func NewOriginateProcessor(w shared.FreeswitchWorkflow) *OriginateProcessor {
-	return &OriginateProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(w)}
+func NewOriginateProcessor(w shared.FreeswitchWorkflow, aP session.ActivityProvider) *OriginateProcessor {
+	return &OriginateProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(w, aP)}
 }
 
-func (p *OriginateProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
-	logger := libworkflow.GetLogger(ctx)
+func (p *OriginateProcessor) Process(ctx workflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
+	logger := workflow.GetLogger(ctx)
 	output := shared.NewWorkflowOutput(metadata.GetSessionId())
 
 	i := activities.OriginateActivityInput{}
@@ -33,13 +34,13 @@ func (p *OriginateProcessor) Process(ctx libworkflow.Context, metadata shared.Me
 		return output, err
 	}
 
-	ctx = libworkflow.WithActivityOptions(ctx, libworkflow.ActivityOptions{
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 		StartToCloseTimeout:    i.Timeout,
 		ScheduleToStartTimeout: 1,
 	})
 
-	origActivity := activities.NewOriginateActivity(p.workflow.SocketProvider())
-	err = libworkflow.ExecuteActivity(ctx, origActivity.Handler(), i).Get(ctx, &output)
+	oA := p.aP.GetActivity(activities.OriginateActivityName)
+	err = workflow.ExecuteActivity(ctx, oA.Handler(), i).Get(ctx, &output)
 
 	if err != nil {
 		logger.Error("Failed to execute originate activity", zap.Error(err))

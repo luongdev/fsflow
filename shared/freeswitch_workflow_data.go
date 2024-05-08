@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	error2 "github.com/luongdev/fsflow/errors"
+	"github.com/luongdev/fsflow/errors"
 	"go.uber.org/cadence/workflow"
 )
 
@@ -39,6 +39,7 @@ var actions = map[string]Action{
 	string(ActionHangup):    ActionHangup,
 	string(ActionTransfer):  ActionTransfer,
 	string(ActionOriginate): ActionOriginate,
+	string(ActionSet):       ActionSet,
 }
 
 type Query string
@@ -111,7 +112,7 @@ func (wi WorkflowInput) GetSessionId() string {
 
 func (wi WorkflowInput) Validate() error {
 	if wi.GetSessionId() == "" {
-		return error2.NewWorkflowInputError("sessionId is required")
+		return errors.NewWorkflowInputError("sessionId is required")
 	}
 	return nil
 }

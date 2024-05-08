@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/luongdev/fsflow/errors"
 	"github.com/luongdev/fsflow/freeswitch"
-	"github.com/luongdev/fsflow/provider"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/zap"
@@ -19,14 +18,16 @@ type BridgeActivityInput struct {
 }
 
 type BridgeActivity struct {
-	p provider.SocketProvider
+	p freeswitch.SocketProvider
 }
+
+const BridgeActivityName = "activities.BridgeActivity"
 
 func (c *BridgeActivity) Name() string {
-	return "activities.BridgeActivity"
+	return BridgeActivityName
 }
 
-func NewBridgeActivity(p provider.SocketProvider) *BridgeActivity {
+func NewBridgeActivity(p freeswitch.SocketProvider) *BridgeActivity {
 	return &BridgeActivity{p: p}
 }
 

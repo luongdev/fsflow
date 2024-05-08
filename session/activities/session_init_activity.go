@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/luongdev/fsflow/errors"
-	"github.com/luongdev/fsflow/provider"
+	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/zap"
@@ -23,10 +23,10 @@ type SessionInitActivityInput struct {
 }
 
 type SessionInitActivity struct {
-	p provider.SocketProvider
+	p freeswitch.SocketProvider
 }
 
-func NewSessionInitActivity(p provider.SocketProvider) *SessionInitActivity {
+func NewSessionInitActivity(p freeswitch.SocketProvider) *SessionInitActivity {
 	return &SessionInitActivity{p: p}
 }
 
