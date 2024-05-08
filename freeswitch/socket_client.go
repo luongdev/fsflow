@@ -162,7 +162,7 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	}
 
 	if input.ANI == "" {
-		input.ANI = "sofia"
+		input.ANI = input.SessionId
 	}
 
 	if input.Variables == nil {
@@ -184,22 +184,23 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	input.Variables["origination_caller_id_number"] = input.ANI
 
 	input.Variables["session_id"] = input.SessionId
-	input.Variables["sip_h_Session-ID"] = input.SessionId
+	input.Variables["sip_h_X-Session-ID"] = input.SessionId
 
 	input.Variables["origination_callback"] = input.Callback
+	input.Variables["disable_q850_reason"] = false
 
 	if input.AutoAnswer {
-		input.Variables["sip_h_Answer"] = "auto"
+		input.Variables["sip_h_X-Answer"] = "auto"
 	} else {
-		input.Variables["sip_h_Answer"] = "manual"
+		input.Variables["sip_h_X-Answer"] = "manual"
 	}
 	if input.AllowReject {
-		input.Variables["sip_h_Reject"] = "allow"
+		input.Variables["sip_h_X-Reject"] = "allow"
 	} else {
-		input.Variables["sip_h_Reject"] = "deny"
+		input.Variables["sip_h_X-Reject"] = "deny"
 	}
 	input.Variables["Direction"] = string(input.Direction)
-	input.Variables["sip_h_Direction"] = string(input.Direction)
+	input.Variables["sip_h_X-Direction"] = string(input.Direction)
 	var bleg eslgo.Leg
 
 	if input.Extension != "" {

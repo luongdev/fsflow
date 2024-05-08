@@ -208,7 +208,9 @@ type EventListener func(req *Event)
 type ServerEventHandler interface {
 	OnSession(ctx context.Context, req *Request)
 
-	OnEvent(ctx context.Context, req *Event)
+	OnEvent(ctx context.Context, event *Event)
+	OnAlegEvent(ctx context.Context, event *Event)
+	OnBlegEvent(ctx context.Context, event *Event)
 }
 
 type SocketClient interface {
@@ -229,7 +231,7 @@ type SocketServer interface {
 	Store() *SocketStore
 	ListenAndServe() error
 	SetEventHandler(handler ServerEventHandler)
-	OnSessionClosed(func())
+	OnSessionClosed(func(sid string))
 }
 
 type SocketProvider interface {

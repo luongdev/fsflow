@@ -90,12 +90,13 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			s.Select(ctx)
 
 			if m.GetAction() == shared.ActionUnknown {
-				output.Metadata[shared.FieldAction] = shared.ActionHangup
-				output.Metadata[shared.FieldInput] = activities.HangupActivityInput{
-					SessionId:    i.GetSessionId(),
-					HangupReason: "InboundSignalUnknown",
-					HangupCause:  "NORMAL_CLEARING",
-				}
+				//output.Metadata[shared.FieldAction] = shared.ActionHangup
+				//output.Metadata[shared.FieldInput] = activities.HangupActivityInput{
+				//	SessionId:    i.GetSessionId(),
+				//	HangupReason: "InboundSignalUnknown",
+				//	HangupCause:  "NORMAL_CLEARING",
+				//}
+				logger.Warn("Unknown signal. Waiting for other signals ...", zap.Any("metadata", m))
 			} else {
 				//ha := activities.NewHangupActivity(w.p)
 				//err = libworkflow.ExecuteActivity(ctx, ha.Handler(), activities.HangupActivityInput{
@@ -113,7 +114,7 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			output, err := processor.Process(ctx, m)
 			if err != nil || !output.Success {
 				logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))
-				return output, err
+				//return output, err
 			}
 		}
 	}
