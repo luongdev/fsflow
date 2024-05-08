@@ -25,6 +25,7 @@ const (
 	FieldAction    Field = "action"
 	FieldMessage   Field = "message"
 	FieldSessionId Field = "sessionId"
+	FieldDomain    Field = "domain"
 	FieldInput     Field = "input"
 	FieldUniqueId  Field = "uniqueId"
 )
@@ -37,6 +38,12 @@ var actions = map[string]Action{
 	string(ActionTransfer):  ActionTransfer,
 	string(ActionOriginate): ActionOriginate,
 }
+
+type Query string
+
+const (
+	QuerySession Query = "session"
+)
 
 type Metadata map[Field]interface{}
 
@@ -73,6 +80,16 @@ func (m *Metadata) GetInput() WorkflowInput {
 	}
 
 	return WorkflowInput{}
+}
+
+type WorkflowQueryResult map[Field]interface{}
+
+type WorkflowQueryHandler func(i interface{}) (WorkflowQueryResult, error)
+
+func NewQueryHandler(r WorkflowQueryResult, e error) WorkflowQueryHandler {
+	return func(i interface{}) (WorkflowQueryResult, error) {
+		return r, e
+	}
 }
 
 type WorkflowInput map[Field]interface{}

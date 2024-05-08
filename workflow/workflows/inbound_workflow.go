@@ -23,6 +23,8 @@ const InboundSignal = "inbound"
 
 type InboundWorkflow struct {
 	p freeswitch.SocketProvider
+	r shared.WorkflowQueryResult
+	e error
 }
 
 func (w *InboundWorkflow) Name() string {
@@ -36,8 +38,13 @@ func NewInboundWorkflow(p freeswitch.SocketProvider) *InboundWorkflow {
 func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 	return func(ctx libworkflow.Context, i shared.WorkflowInput) (*shared.WorkflowOutput, error) {
 		logger := libworkflow.GetLogger(ctx)
-		output := shared.NewWorkflowOutput(i.GetSessionId())
 
+		err := libworkflow.SetQueryHandler(ctx, string(shared.QuerySession), shared.NewQueryHandler(w.r, w.e))
+		if err != nil {
+			logger.Error("Failed to set query handler", zap.Error(err))
+		}
+
+		output := shared.NewWorkflowOutput(i.GetSessionId())
 		if err := i.Validate(); err != nil {
 			logger.Error("Invalid input", zap.Any("input", i), zap.Error(err))
 			return output, err
@@ -51,10 +58,8 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			return output, shared.NewWorkflowInputError("Cannot cast input to InboundWorkflowInput")
 		}
 
-		ctx = libworkflow.WithActivityOptions(ctx, libworkflow.ActivityOptions{
-			ScheduleToStartTimeout: time.Second,
-			StartToCloseTimeout:    time.Hour,
-		})
+		ctx = libworkflow.WithActivityOptions(ctx,
+			libworkflow.ActivityOptions{ScheduleToStartTimeout: time.Second, StartToCloseTimeout: input.Timeout})
 
 		si := activities.NewSessionInitActivity(w.p)
 		f := libworkflow.ExecuteActivity(ctx, si.Handler(), activities.SessionInitActivityInput{
@@ -72,10 +77,13 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 		}
 
 		processor := processors.NewFreeswitchActivityProcessor(w.p)
-		output, err := processor.Process(ctx, output.Metadata)
+		output, err = processor.Process(ctx, output.Metadata)
 		if err != nil {
 			logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))
 		}
+
+		w.r[shared.FieldAction] = output.Metadata.GetAction()
+		w.r[shared.FieldInput] = output.Metadata.GetInput()
 
 		m := shared.Metadata{}
 		signalChan := libworkflow.GetSignalChannel(ctx, InboundSignal)
@@ -88,6 +96,9 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			})
 
 			s.Select(ctx)
+
+			w.r[shared.FieldAction] = m.GetAction()
+			w.r[shared.FieldInput] = m.GetInput()
 
 			if m.GetAction() == shared.ActionUnknown {
 				//output.Metadata[shared.FieldAction] = shared.ActionHangup
@@ -115,6 +126,10 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			if err != nil || !output.Success {
 				logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))
 				//return output, err
+				w.e = err
+			} else {
+				w.r[shared.FieldAction] = output.Metadata.GetAction()
+				w.r[shared.FieldInput] = output.Metadata.GetInput()
 			}
 		}
 	}
