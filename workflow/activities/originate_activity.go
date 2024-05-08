@@ -3,7 +3,9 @@ package activities
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/luongdev/fsflow/errors"
 	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/provider"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/zap"
@@ -28,14 +30,14 @@ type OriginateActivityInput struct {
 }
 
 type OriginateActivity struct {
-	p freeswitch.SocketProvider
+	p provider.SocketProvider
 }
 
 func (o *OriginateActivity) Name() string {
 	return "activities.OriginateActivity"
 }
 
-func NewOriginateActivity(p freeswitch.SocketProvider) *OriginateActivity {
+func NewOriginateActivity(p provider.SocketProvider) *OriginateActivity {
 	return &OriginateActivity{p: p}
 }
 
@@ -51,7 +53,7 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 
 		if !ok {
 			logger.Error("Failed to cast input to OriginateActivityInput")
-			return output, shared.NewWorkflowInputError("Cannot cast input to OriginateActivityInput")
+			return output, errors.NewWorkflowInputError("Cannot cast input to OriginateActivityInput")
 		}
 
 		if input.GetSessionId() == "" {

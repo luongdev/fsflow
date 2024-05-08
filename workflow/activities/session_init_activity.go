@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/errors"
+	"github.com/luongdev/fsflow/provider"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/zap"
@@ -22,10 +23,10 @@ type SessionInitActivityInput struct {
 }
 
 type SessionInitActivity struct {
-	p freeswitch.SocketProvider
+	p provider.SocketProvider
 }
 
-func NewSessionInitActivity(p freeswitch.SocketProvider) *SessionInitActivity {
+func NewSessionInitActivity(p provider.SocketProvider) *SessionInitActivity {
 	return &SessionInitActivity{p: p}
 }
 
@@ -48,7 +49,7 @@ func (s SessionInitActivity) Handler() shared.ActivityFunc {
 
 		if !ok {
 			logger.Error("Failed to cast input to SessionInitActivityInput")
-			return output, shared.NewWorkflowInputError("Cannot cast input to SessionInitActivityInput")
+			return output, errors.NewWorkflowInputError("Cannot cast input to SessionInitActivityInput")
 		}
 
 		bInput, err := json.Marshal(&input)
@@ -84,7 +85,7 @@ func (s SessionInitActivity) Handler() shared.ActivityFunc {
 
 		if res != nil && res.StatusCode != http.StatusOK {
 			logger.Error("Failed to init session", zap.Any("status", res.StatusCode))
-			return output, shared.NewWorkflowInputError("Failed to init session")
+			return output, errors.NewWorkflowInputError("Failed to init session")
 		}
 
 		var o interface{}
@@ -96,7 +97,7 @@ func (s SessionInitActivity) Handler() shared.ActivityFunc {
 
 		if ok := shared.Convert(o, &output); !ok {
 			logger.Error("Failed to cast response to WorkflowOutput")
-			return output, shared.NewWorkflowInputError("Cannot cast response to WorkflowOutput")
+			return output, errors.NewWorkflowInputError("Cannot cast response to WorkflowOutput")
 		}
 
 		return output, nil

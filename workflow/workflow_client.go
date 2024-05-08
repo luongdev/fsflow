@@ -2,7 +2,7 @@ package workflow
 
 import (
 	"fmt"
-	"github.com/luongdev/fsflow/shared"
+	"github.com/luongdev/fsflow/errors"
 	apiv1 "github.com/uber/cadence-idl/go/proto/api/v1"
 	"go.uber.org/cadence/.gen/go/cadence/workflowserviceclient"
 	"go.uber.org/cadence/compatibility"
@@ -23,10 +23,10 @@ func NewCadenceClient(c *Config) (workflowserviceclient.Interface, error) {
 		c.Port = 7833
 	}
 	if c.ClientName == "" {
-		return nil, shared.RequireField("cadenceClientName")
+		return nil, errors.RequireField("cadenceClientName")
 	}
 	if c.TaskList == "" {
-		return nil, shared.RequireField("cadenceTaskList")
+		return nil, errors.RequireField("cadenceTaskList")
 	}
 
 	hostPort := fmt.Sprintf("%v:%v", c.Host, c.Port)

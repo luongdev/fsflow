@@ -1,7 +1,7 @@
 package workflow
 
 import (
-	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/provider"
 	"github.com/luongdev/fsflow/shared"
 	"github.com/luongdev/fsflow/workflow/activities"
 	"github.com/luongdev/fsflow/workflow/workflows"
@@ -17,12 +17,12 @@ import (
 
 type FreeswitchWorkerOptions struct {
 	Domain         string
-	SocketProvider freeswitch.SocketProvider
+	SocketProvider provider.SocketProvider
 }
 
 type FreeswitchWorker struct {
 	worker.Worker
-	socketProvider freeswitch.SocketProvider
+	socketProvider provider.SocketProvider
 	CadenceClient  *workflowserviceclient.Interface
 
 	workflows  []shared.FreeswitchWorkflow

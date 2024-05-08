@@ -234,10 +234,6 @@ type SocketServer interface {
 	OnSessionClosed(func(sid string))
 }
 
-type SocketProvider interface {
-	GetClient(key string) SocketClient
-}
-
 type SocketStore interface {
 	Set(key string, client SocketClient)
 	Get(key string) (SocketClient, error)

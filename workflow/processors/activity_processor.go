@@ -2,28 +2,28 @@ package processors
 
 import (
 	"fmt"
-	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/errors"
 	"github.com/luongdev/fsflow/shared"
 	libworkflow "go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 )
 
 type FreeswitchActivityProcessorImpl struct {
-	SocketProvider freeswitch.SocketProvider
+	workflow shared.FreeswitchWorkflow
 }
 
-func NewFreeswitchActivityProcessor(provider freeswitch.SocketProvider) *FreeswitchActivityProcessorImpl {
-	return &FreeswitchActivityProcessorImpl{SocketProvider: provider}
+func NewFreeswitchActivityProcessor(w shared.FreeswitchWorkflow) *FreeswitchActivityProcessorImpl {
+	return &FreeswitchActivityProcessorImpl{workflow: w}
 }
 
 func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
 	logger := libworkflow.GetLogger(ctx)
 	o := shared.NewWorkflowOutput(metadata.GetSessionId())
 	if metadata == nil || metadata.GetAction() == shared.ActionUnknown {
-		return o, shared.NewWorkflowInputError("metadata is nil")
+		return o, errors.NewWorkflowInputError("metadata is nil")
 	}
 
-	factory := NewFreeswitchProcessorFactory(p.SocketProvider)
+	factory := NewFreeswitchProcessorFactory(p.workflow)
 	processor, err := factory.CreateActivityProcessor(metadata.GetAction())
 	if err != nil {
 		logger.Error("Failed to create activity processor", zap.Error(err))
@@ -31,9 +31,6 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx libworkflow.Context, metad
 	}
 
 	o, err = processor.Process(ctx, metadata)
-	//if err != nil {
-	//	return o, err
-	//}
 
 	if o != nil && o.Metadata.GetAction() != shared.ActionUnknown {
 		return p.Process(ctx, o.Metadata)

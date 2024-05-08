@@ -1,7 +1,6 @@
 package processors
 
 import (
-	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"github.com/luongdev/fsflow/workflow/activities"
 	libworkflow "go.uber.org/cadence/workflow"
@@ -12,8 +11,8 @@ type BridgeProcessor struct {
 	*FreeswitchActivityProcessorImpl
 }
 
-func NewBridgeProcessor(client freeswitch.SocketProvider) *BridgeProcessor {
-	return &BridgeProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(client)}
+func NewBridgeProcessor(w shared.FreeswitchWorkflow) *BridgeProcessor {
+	return &BridgeProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(w)}
 }
 
 func (p *BridgeProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
@@ -27,7 +26,7 @@ func (p *BridgeProcessor) Process(ctx libworkflow.Context, metadata shared.Metad
 		return output, err
 	}
 
-	bridgeActivity := activities.NewBridgeActivity(p.SocketProvider)
+	bridgeActivity := activities.NewBridgeActivity(p.workflow.SocketProvider())
 	err = libworkflow.ExecuteActivity(ctx, bridgeActivity.Handler(), i).Get(ctx, &output)
 
 	return output, err

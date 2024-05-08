@@ -3,7 +3,9 @@ module github.com/luongdev/fsflow
 go 1.22.2
 
 require (
+	github.com/google/uuid v1.1.1
 	github.com/percipia/eslgo v1.4.1
+	github.com/uber-go/tally v3.3.15+incompatible
 	github.com/uber/cadence-idl v0.0.0-20230905165949-03586319b849
 	go.uber.org/cadence v1.2.9
 	go.uber.org/yarpc v1.55.0
@@ -24,7 +26,6 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.0 // indirect
 	github.com/golang/mock v1.5.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.1.1 // indirect
 	github.com/marusama/semaphore/v2 v2.5.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
@@ -41,7 +42,6 @@ require (
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/uber-go/mapdecode v1.0.0 // indirect
-	github.com/uber-go/tally v3.3.15+incompatible // indirect
 	github.com/uber/tchannel-go v1.32.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.uber.org/atomic v1.9.0 // indirect

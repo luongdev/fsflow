@@ -1,11 +1,16 @@
 package shared
 
-import "go.uber.org/cadence/workflow"
+import (
+	"github.com/luongdev/fsflow/provider"
+	"go.uber.org/cadence/workflow"
+)
 
 type FreeswitchWorkflow interface {
 	Handler() WorkflowFunc
-
 	Name() string
+
+	QueryResult(r WorkflowQueryResult, e error)
+	SocketProvider() provider.SocketProvider
 }
 
 type FreeswitchActivity interface {

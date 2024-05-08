@@ -1,4 +1,4 @@
-package shared
+package errors
 
 import "fmt"
 
@@ -19,5 +19,5 @@ type WorkflowInputError struct {
 }
 
 func NewWorkflowInputError(msg string) *WorkflowInputError {
-	return &WorkflowInputError{error: fmt.Errorf("workflow input error: %v", msg)}
+	return &WorkflowInputError{error: fmt.Errorf("workflow input errors: %v", msg)}
 }

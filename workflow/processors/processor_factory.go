@@ -1,31 +1,31 @@
 package processors
 
 import (
-	"github.com/luongdev/fsflow/freeswitch"
+	error2 "github.com/luongdev/fsflow/errors"
 	"github.com/luongdev/fsflow/shared"
 )
 
 type FreeswitchProcessorFactoryImpl struct {
-	socketProvider freeswitch.SocketProvider
+	workflow shared.FreeswitchWorkflow
 }
 
-func NewFreeswitchProcessorFactory(provider freeswitch.SocketProvider) *FreeswitchProcessorFactoryImpl {
-	return &FreeswitchProcessorFactoryImpl{socketProvider: provider}
+func NewFreeswitchProcessorFactory(w shared.FreeswitchWorkflow) *FreeswitchProcessorFactoryImpl {
+	return &FreeswitchProcessorFactoryImpl{workflow: w}
 }
 
 func (f *FreeswitchProcessorFactoryImpl) CreateActivityProcessor(s shared.Action) (shared.FreeswitchActivityProcessor, error) {
 	switch s {
 	case shared.ActionOriginate:
-		return NewOriginateProcessor(f.socketProvider), nil
+		return NewOriginateProcessor(f.workflow), nil
 	case shared.ActionBridge:
-		return NewBridgeProcessor(f.socketProvider), nil
+		return NewBridgeProcessor(f.workflow), nil
 	case shared.ActionHangup:
-		return NewHangupProcessor(f.socketProvider), nil
+		return NewHangupProcessor(f.workflow), nil
 	case shared.ActionEvent:
-		return NewEventProcessor(f.socketProvider), nil
+		return NewEventProcessor(f.workflow), nil
 
 	default:
-		return nil, shared.NewWorkflowInputError("unsupported action")
+		return nil, error2.NewWorkflowInputError("unsupported action")
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	error2 "github.com/luongdev/fsflow/errors"
 	"go.uber.org/cadence/workflow"
 )
 
@@ -16,6 +17,7 @@ const (
 	ActionHangup    Action = "hangup"
 	ActionTransfer  Action = "transfer"
 	ActionOriginate Action = "originate"
+	ActionSet       Action = "set"
 	ActionUnknown   Action = "unknown"
 )
 
@@ -84,10 +86,10 @@ func (m *Metadata) GetInput() WorkflowInput {
 
 type WorkflowQueryResult map[Field]interface{}
 
-type WorkflowQueryHandler func(i interface{}) (WorkflowQueryResult, error)
+type WorkflowQueryHandler func() (WorkflowQueryResult, error)
 
 func NewQueryHandler(r WorkflowQueryResult, e error) WorkflowQueryHandler {
-	return func(i interface{}) (WorkflowQueryResult, error) {
+	return func() (WorkflowQueryResult, error) {
 		return r, e
 	}
 }
@@ -109,7 +111,7 @@ func (wi WorkflowInput) GetSessionId() string {
 
 func (wi WorkflowInput) Validate() error {
 	if wi.GetSessionId() == "" {
-		return NewWorkflowInputError("sessionId is required")
+		return error2.NewWorkflowInputError("sessionId is required")
 	}
 	return nil
 }

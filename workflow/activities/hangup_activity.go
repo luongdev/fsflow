@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/provider"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/zap"
@@ -16,14 +17,14 @@ type HangupActivityInput struct {
 }
 
 type HangupActivity struct {
-	p freeswitch.SocketProvider
+	p provider.SocketProvider
 }
 
 func (c *HangupActivity) Name() string {
 	return "activities.HangupActivity"
 }
 
-func NewHangupActivity(p freeswitch.SocketProvider) *HangupActivity {
+func NewHangupActivity(p provider.SocketProvider) *HangupActivity {
 	return &HangupActivity{p: p}
 }
 

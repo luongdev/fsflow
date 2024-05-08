@@ -1,7 +1,6 @@
 package processors
 
 import (
-	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"github.com/luongdev/fsflow/workflow/activities"
 	libworkflow "go.uber.org/cadence/workflow"
@@ -12,8 +11,8 @@ type EventProcessor struct {
 	*FreeswitchActivityProcessorImpl
 }
 
-func NewEventProcessor(client freeswitch.SocketProvider) *EventProcessor {
-	return &EventProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(client)}
+func NewEventProcessor(w shared.FreeswitchWorkflow) *EventProcessor {
+	return &EventProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(w)}
 }
 
 func (p *EventProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
@@ -27,7 +26,7 @@ func (p *EventProcessor) Process(ctx libworkflow.Context, metadata shared.Metada
 		return output, err
 	}
 
-	eventActivity := activities.NewEventActivity(p.SocketProvider)
+	eventActivity := activities.NewEventActivity(p.workflow.SocketProvider())
 	err = libworkflow.ExecuteActivity(ctx, eventActivity.Handler(), i).Get(ctx, &output)
 
 	return output, err

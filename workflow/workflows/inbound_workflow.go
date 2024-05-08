@@ -1,7 +1,8 @@
 package workflows
 
 import (
-	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/errors"
+	"github.com/luongdev/fsflow/provider"
 	"github.com/luongdev/fsflow/shared"
 	"github.com/luongdev/fsflow/workflow/activities"
 	"github.com/luongdev/fsflow/workflow/processors"
@@ -22,17 +23,33 @@ type InboundWorkflowInput struct {
 const InboundSignal = "inbound"
 
 type InboundWorkflow struct {
-	p freeswitch.SocketProvider
+	p provider.SocketProvider
 	r shared.WorkflowQueryResult
 	e error
 }
 
+func (w *InboundWorkflow) QueryResult(r shared.WorkflowQueryResult, e error) {
+	if r != nil {
+		w.r = r
+	}
+
+	if e != nil {
+		w.e = e
+	}
+}
+
+func (w *InboundWorkflow) SocketProvider() provider.SocketProvider {
+	return w.p
+}
 func (w *InboundWorkflow) Name() string {
 	return "workflows.InboundWorkflow"
 }
 
-func NewInboundWorkflow(p freeswitch.SocketProvider) *InboundWorkflow {
-	return &InboundWorkflow{p: p}
+func NewInboundWorkflow(p provider.SocketProvider) *InboundWorkflow {
+	w := &InboundWorkflow{p: p}
+	w.QueryResult(shared.WorkflowQueryResult{}, nil)
+
+	return w
 }
 
 func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
@@ -55,7 +72,7 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 
 		if !ok {
 			logger.Error("Failed to cast input to InboundWorkflowInput")
-			return output, shared.NewWorkflowInputError("Cannot cast input to InboundWorkflowInput")
+			return output, errors.NewWorkflowInputError("Cannot cast input to InboundWorkflowInput")
 		}
 
 		ctx = libworkflow.WithActivityOptions(ctx,
@@ -76,7 +93,7 @@ func (w *InboundWorkflow) Handler() shared.WorkflowFunc {
 			return output, err
 		}
 
-		processor := processors.NewFreeswitchActivityProcessor(w.p)
+		processor := processors.NewFreeswitchActivityProcessor(w)
 		output, err = processor.Process(ctx, output.Metadata)
 		if err != nil {
 			logger.Error("Failed to process metadata", zap.Any("metadata", output.Metadata), zap.Error(err))

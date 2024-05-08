@@ -1,7 +1,6 @@
 package processors
 
 import (
-	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"github.com/luongdev/fsflow/workflow/activities"
 	libworkflow "go.uber.org/cadence/workflow"
@@ -12,8 +11,8 @@ type HangupProcessor struct {
 	*FreeswitchActivityProcessorImpl
 }
 
-func NewHangupProcessor(client freeswitch.SocketProvider) *HangupProcessor {
-	return &HangupProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(client)}
+func NewHangupProcessor(w shared.FreeswitchWorkflow) *HangupProcessor {
+	return &HangupProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(w)}
 }
 
 func (p *HangupProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
@@ -27,7 +26,7 @@ func (p *HangupProcessor) Process(ctx libworkflow.Context, metadata shared.Metad
 		return output, err
 	}
 
-	hangupActivity := activities.NewHangupActivity(p.SocketProvider)
+	hangupActivity := activities.NewHangupActivity(p.workflow.SocketProvider())
 	err = libworkflow.ExecuteActivity(ctx, hangupActivity.Handler(), i).Get(ctx, &output)
 
 	return output, err

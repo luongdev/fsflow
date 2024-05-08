@@ -3,7 +3,9 @@ package activities
 import (
 	"context"
 	"fmt"
+	"github.com/luongdev/fsflow/errors"
 	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/provider"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/zap"
@@ -18,14 +20,14 @@ type EventActivityInput struct {
 }
 
 type EventActivity struct {
-	p freeswitch.SocketProvider
+	p provider.SocketProvider
 }
 
 func (c *EventActivity) Name() string {
 	return "activities.EventActivity"
 }
 
-func NewEventActivity(p freeswitch.SocketProvider) *EventActivity {
+func NewEventActivity(p provider.SocketProvider) *EventActivity {
 	return &EventActivity{p: p}
 }
 
@@ -46,7 +48,7 @@ func (c *EventActivity) Handler() shared.ActivityFunc {
 
 		if !ok {
 			logger.Error("Failed to cast input to EventActivityInput")
-			return output, shared.NewWorkflowInputError("Cannot cast input to EventActivityInput")
+			return output, errors.NewWorkflowInputError("Cannot cast input to EventActivityInput")
 		}
 
 		if input.EventName == "" {

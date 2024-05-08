@@ -18,8 +18,8 @@ type OriginateProcessor struct {
 	*FreeswitchActivityProcessorImpl
 }
 
-func NewOriginateProcessor(client freeswitch.SocketProvider) *OriginateProcessor {
-	return &OriginateProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(client)}
+func NewOriginateProcessor(w shared.FreeswitchWorkflow) *OriginateProcessor {
+	return &OriginateProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(w)}
 }
 
 func (p *OriginateProcessor) Process(ctx libworkflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
@@ -38,7 +38,7 @@ func (p *OriginateProcessor) Process(ctx libworkflow.Context, metadata shared.Me
 		ScheduleToStartTimeout: 1,
 	})
 
-	origActivity := activities.NewOriginateActivity(p.SocketProvider)
+	origActivity := activities.NewOriginateActivity(p.workflow.SocketProvider())
 	err = libworkflow.ExecuteActivity(ctx, origActivity.Handler(), i).Get(ctx, &output)
 
 	if err != nil {

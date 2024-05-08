@@ -3,7 +3,9 @@ package activities
 import (
 	"context"
 	"fmt"
+	"github.com/luongdev/fsflow/errors"
 	"github.com/luongdev/fsflow/freeswitch"
+	"github.com/luongdev/fsflow/provider"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/zap"
@@ -17,14 +19,14 @@ type BridgeActivityInput struct {
 }
 
 type BridgeActivity struct {
-	p freeswitch.SocketProvider
+	p provider.SocketProvider
 }
 
 func (c *BridgeActivity) Name() string {
 	return "activities.BridgeActivity"
 }
 
-func NewBridgeActivity(p freeswitch.SocketProvider) *BridgeActivity {
+func NewBridgeActivity(p provider.SocketProvider) *BridgeActivity {
 	return &BridgeActivity{p: p}
 }
 
@@ -45,7 +47,7 @@ func (c *BridgeActivity) Handler() shared.ActivityFunc {
 
 		if !ok {
 			logger.Error("Failed to cast input to BridgeActivityInput")
-			return output, shared.NewWorkflowInputError("Cannot cast input to BridgeActivityInput")
+			return output, errors.NewWorkflowInputError("Cannot cast input to BridgeActivityInput")
 		}
 
 		res, err := client.Api(ctx, &freeswitch.Command{
