@@ -22,6 +22,8 @@ func (f *FreeswitchProcessorFactoryImpl) CreateActivityProcessor(s shared.Action
 		return NewOriginateProcessor(f.workflow, f.aP), nil
 	case shared.ActionBridge:
 		return NewBridgeProcessor(f.workflow, f.aP), nil
+	case shared.ActionCallback:
+		return NewCallbackProcessor(f.workflow, f.aP), nil
 	case shared.ActionHangup:
 		return NewHangupProcessor(f.workflow, f.aP), nil
 	case shared.ActionEvent:

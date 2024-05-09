@@ -186,8 +186,8 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	input.Variables["session_id"] = input.SessionId
 	input.Variables["sip_h_X-Session-ID"] = input.SessionId
 
-	input.Variables["origination_callback"] = input.Callback
 	input.Variables["disable_q850_reason"] = true
+	input.Variables["origination_callback"] = input.Callback
 
 	if input.AutoAnswer {
 		input.Variables["sip_h_X-Answer"] = "auto"

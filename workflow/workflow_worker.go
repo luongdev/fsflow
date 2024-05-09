@@ -8,6 +8,7 @@ import (
 	"github.com/luongdev/fsflow/shared"
 	"github.com/uber-go/tally"
 	"go.uber.org/cadence/.gen/go/cadence/workflowserviceclient"
+	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/worker"
 	"go.uber.org/cadence/workflow"
 	"io"
@@ -68,11 +69,12 @@ func NewFreeswitchWorker(c *Config, opts *FreeswitchWorkerOptions) (*FreeswitchW
 
 	fsWorker.AddWorkflow(workflows.NewInboundWorkflow(opts.SocketProvider, aP))
 
+	fsWorker.AddActivity(activities.NewCallbackActivity())
+	fsWorker.AddActivity(activities.NewSessionInitActivity())
 	fsWorker.AddActivity(activities.NewEventActivity(opts.SocketProvider))
 	fsWorker.AddActivity(activities.NewBridgeActivity(opts.SocketProvider))
 	fsWorker.AddActivity(activities.NewHangupActivity(opts.SocketProvider))
 	fsWorker.AddActivity(activities.NewOriginateActivity(opts.SocketProvider))
-	fsWorker.AddActivity(activities.NewSessionInitActivity(opts.SocketProvider))
 
 	return fsWorker, nil
 }
@@ -91,7 +93,7 @@ func (w *FreeswitchWorker) Start() error {
 		if err != nil {
 			return err
 		}
-		w.Worker.RegisterActivity(wa.Handler())
+		w.Worker.RegisterActivityWithOptions(wa.Handler(), activity.RegisterOptions{Name: wa.Name()})
 	}
 
 	err := w.Worker.Start()

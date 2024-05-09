@@ -13,6 +13,7 @@ type Action string
 const (
 	ActionAnswer    Action = "answer"
 	ActionBridge    Action = "bridge"
+	ActionCallback  Action = "callback"
 	ActionEvent     Action = "event"
 	ActionHangup    Action = "hangup"
 	ActionTransfer  Action = "transfer"
@@ -29,12 +30,14 @@ const (
 	FieldSessionId Field = "sessionId"
 	FieldDomain    Field = "domain"
 	FieldInput     Field = "input"
+	FieldOutput    Field = "output"
 	FieldUniqueId  Field = "uniqueId"
 )
 
 var actions = map[string]Action{
 	string(ActionAnswer):    ActionAnswer,
 	string(ActionBridge):    ActionBridge,
+	string(ActionCallback):  ActionCallback,
 	string(ActionEvent):     ActionEvent,
 	string(ActionHangup):    ActionHangup,
 	string(ActionTransfer):  ActionTransfer,

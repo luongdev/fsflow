@@ -48,29 +48,31 @@ func (p *OriginateProcessor) Process(ctx workflow.Context, metadata shared.Metad
 	}
 
 	if output.Success {
-		uid, ok := output.Metadata[shared.FieldUniqueId].(string)
-		if ok && uid != "" && !i.Background && i.Extension != "" && i.GetSessionId() != "" {
-			output.Metadata[shared.FieldAction] = shared.ActionBridge
-			bInput := activities.BridgeActivityInput{
-				Originator:    i.GetSessionId(),
-				Originatee:    uid,
-				WorkflowInput: i.WorkflowInput,
-			}
-			output.Metadata[shared.FieldInput] = bInput
+		if !i.Background {
+			uid, ok := output.Metadata[shared.FieldUniqueId].(string)
+			if ok && uid != "" && i.Extension != "" && i.GetSessionId() != "" {
+				output.Metadata[shared.FieldAction] = shared.ActionBridge
+				bInput := activities.BridgeActivityInput{
+					Originator:    i.GetSessionId(),
+					Originatee:    uid,
+					WorkflowInput: i.WorkflowInput,
+				}
+				output.Metadata[shared.FieldInput] = bInput
 
-			if i.Direction == freeswitch.Outbound {
-				bInput.Originatee = i.GetSessionId()
-				bInput.Originator = uid
+				if i.Direction == freeswitch.Outbound {
+					bInput.Originatee = i.GetSessionId()
+					bInput.Originator = uid
+				}
 			}
+
+			go func() {
+				err := p.sendCallback(i.Callback, output)
+				if err != nil {
+					logger.Error("Failed to send callback", zap.Error(err))
+				}
+			}()
 		}
 	}
-
-	go func() {
-		err := p.sendCallback(i.Callback, output)
-		if err != nil {
-			logger.Error("Failed to send callback", zap.Error(err))
-		}
-	}()
 
 	return output, nil
 }
