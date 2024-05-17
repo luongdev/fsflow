@@ -17,6 +17,8 @@ type OriginateActivityInput struct {
 	Timeout      time.Duration          `json:"timeout"`
 	DialedNumber string                 `json:"dialedNumber"`
 	Destination  string                 `json:"destination"`
+	ANI          string                 `json:"ani"`
+	DNIS         string                 `json:"dnis"`
 	Gateway      string                 `json:"gateway"`
 	Profile      string                 `json:"profile"`
 	AutoAnswer   bool                   `json:"autoAnswer"`
@@ -62,6 +64,18 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			if err == nil {
 				input.WorkflowInput[shared.FieldSessionId] = s.String()
 			}
+		}
+
+		if input.Variables == nil {
+			input.Variables = make(map[string]interface{})
+		}
+
+		if input.ANI != "" {
+			input.Variables["X-ANI"] = input.ANI
+		}
+
+		if input.DNIS != "" {
+			input.Variables["X-DNIS"] = input.DNIS
 		}
 
 		res, err := client.Originate(ctx, &freeswitch.Originator{

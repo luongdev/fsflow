@@ -7,6 +7,7 @@ import (
 	"github.com/percipia/eslgo"
 	"github.com/percipia/eslgo/command"
 	"github.com/percipia/eslgo/command/call"
+	"strings"
 	"time"
 )
 
@@ -184,23 +185,24 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	input.Variables["origination_caller_id_number"] = input.ANI
 
 	input.Variables["session_id"] = input.SessionId
-	input.Variables["sip_h_X-Session-ID"] = input.SessionId
+	input.Variables["X-Session-ID"] = input.SessionId
 
 	input.Variables["disable_q850_reason"] = true
 	input.Variables["origination_callback"] = input.Callback
 
+	input.Variables["Direction"] = string(input.Direction)
+
 	if input.AutoAnswer {
-		input.Variables["sip_h_X-Answer"] = "auto"
+		input.Variables["X-Answer"] = "auto"
 	} else {
-		input.Variables["sip_h_X-Answer"] = "manual"
+		input.Variables["X-Answer"] = "manual"
 	}
 	if input.AllowReject {
-		input.Variables["sip_h_X-Reject"] = "allow"
+		input.Variables["X-Reject"] = "allow"
 	} else {
-		input.Variables["sip_h_X-Reject"] = "deny"
+		input.Variables["X-Reject"] = "deny"
 	}
-	input.Variables["Direction"] = string(input.Direction)
-	input.Variables["sip_h_X-Direction"] = string(input.Direction)
+	input.Variables["X-Direction"] = string(input.Direction)
 	var bleg eslgo.Leg
 
 	if input.Extension != "" {
@@ -211,6 +213,9 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 
 	vars := make(map[string]string)
 	for k, v := range input.Variables {
+		if strings.HasPrefix(k, "X-") {
+			k = "sip_h_" + k
+		}
 		vars[k] = fmt.Sprintf("%v", v)
 	}
 

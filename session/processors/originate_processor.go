@@ -66,7 +66,7 @@ func (p *OriginateProcessor) Process(ctx workflow.Context, metadata shared.Metad
 			}
 
 			go func() {
-				err := p.sendCallback(i.Callback, output)
+				err := p.sendCallback(i.Callback, metadata)
 				if err != nil {
 					logger.Error("Failed to send callback", zap.Error(err))
 				}
