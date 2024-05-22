@@ -93,13 +93,18 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			Extension:   input.Extension,
 			Background:  input.Background,
 		})
+
 		if err != nil {
 			logger.Error("Failed to originate call", zap.Error(err))
 			return output, nil
 		}
 
 		output.Success = true
-		output.Metadata[shared.FieldUniqueId] = res
+		if input.Background {
+			output.Metadata[shared.FieldUniqueId] = res
+		} else {
+			output.Metadata[shared.FieldOutput] = res
+		}
 
 		return output, nil
 	}

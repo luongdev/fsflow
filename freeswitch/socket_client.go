@@ -213,20 +213,31 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 
 	vars := make(map[string]string)
 	for k, v := range input.Variables {
+		if k == "uuid" {
+			continue
+		}
 		if strings.HasPrefix(k, "X-") {
 			k = "sip_h_" + k
 		}
 		vars[k] = fmt.Sprintf("%v", v)
 	}
 
-	aleg := eslgo.Leg{CallURL: fmt.Sprintf("sofia/%v/%v@%v", input.Profile, input.DNIS, input.Gateway)}
+	alegVars := make(map[string]string)
+	if input.Variables["uuid"] != "" {
+		alegVars["origination_uuid"] = fmt.Sprintf("%v", input.Variables["uuid"])
+	}
+
+	aleg := eslgo.Leg{
+		CallURL:      fmt.Sprintf("sofia/%v/%v@%v", input.Profile, input.DNIS, input.Gateway),
+		LegVariables: alegVars,
+	}
 	raw, err := s.Conn.OriginateCall(ctx, input.Background, aleg, bleg, vars)
 	if err != nil {
 		return "", err
 	}
 
 	res, ok := NewResponse(raw).Get()
-	if !ok {
+	if !ok && res == "" {
 		return res, fmt.Errorf("failed to originate call: %v", res)
 	}
 

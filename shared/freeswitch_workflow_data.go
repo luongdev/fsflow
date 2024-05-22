@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/luongdev/fsflow/errors"
 	"go.uber.org/cadence/workflow"
+	"time"
 )
 
 type Action string
@@ -19,6 +20,7 @@ const (
 	ActionTransfer  Action = "transfer"
 	ActionOriginate Action = "originate"
 	ActionSet       Action = "set"
+	ActionOffer     Action = "offer"
 	ActionUnknown   Action = "unknown"
 )
 
@@ -29,6 +31,7 @@ const (
 	FieldMessage   Field = "message"
 	FieldSessionId Field = "sessionId"
 	FieldDomain    Field = "domain"
+	FieldTimeout   Field = "timeout"
 	FieldInput     Field = "input"
 	FieldOutput    Field = "output"
 	FieldUniqueId  Field = "uniqueId"
@@ -41,6 +44,7 @@ var actions = map[string]Action{
 	string(ActionEvent):     ActionEvent,
 	string(ActionHangup):    ActionHangup,
 	string(ActionTransfer):  ActionTransfer,
+	string(ActionOffer):     ActionOffer,
 	string(ActionOriginate): ActionOriginate,
 	string(ActionSet):       ActionSet,
 }
@@ -111,6 +115,26 @@ func (wi WorkflowInput) GetSessionId() string {
 	}
 
 	return fmt.Sprintf("%v", i)
+}
+
+func (wi WorkflowInput) GetTimeout() time.Duration {
+	t, ok := wi[FieldTimeout]
+	if !ok {
+		m, ok := wi["WorkflowInput"].(map[string]interface{})
+		if !ok {
+			return -1
+		}
+		t = m[string(FieldSessionId)]
+	}
+
+	if d, ok := t.(time.Duration); ok {
+		return d
+	}
+	if f, ok := t.(float64); ok {
+		return time.Duration(f)
+	}
+
+	return -1
 }
 
 func (wi WorkflowInput) Validate() error {
