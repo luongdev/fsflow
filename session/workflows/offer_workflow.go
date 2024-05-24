@@ -27,6 +27,7 @@ func (w *OfferWorkflow) Handler() shared.WorkflowFunc {
 		"NO_ANSWER":        true,
 		"NO_USER_RESPONSE": true,
 		"USER_BUSY":        true,
+		"NORMAL_CLEARING":  true,
 	}
 	return func(ctx workflow.Context, i shared.WorkflowInput) (o *shared.WorkflowOutput, err error) {
 		logger := workflow.GetLogger(ctx)
@@ -68,6 +69,8 @@ func (w *OfferWorkflow) Handler() shared.WorkflowFunc {
 
 			if resStr, ok := res.(string); ok {
 				if retryIgnored[resStr] {
+					o.Success = true
+					o.Metadata[shared.FieldUniqueId] = resStr
 					break
 				}
 				if _, err := uuid.Parse(resStr); err == nil {

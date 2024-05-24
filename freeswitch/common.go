@@ -169,12 +169,12 @@ func getUniqueId(raw RawData) string {
 
 func getSessionId(raw RawData) string {
 	if raw != nil {
-		if raw.HasHeader("variable_session_id") {
-			return raw.GetHeader("variable_session_id")
+		if raw.HasHeader("variable_sid") {
+			return raw.GetHeader("variable_sid")
 		}
 
-		if raw.HasHeader("variable_sip_h_session_id") {
-			return raw.GetHeader("variable_sip_h_session_id")
+		if raw.HasHeader("variable_sip_h_X-Session-ID") {
+			return raw.GetHeader("variable_sip_h_X-Session-ID")
 		}
 	}
 

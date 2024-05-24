@@ -64,7 +64,7 @@ func (p *OfferProcessor) Process(ctx workflow.Context, metadata shared.Metadata)
 			})
 			err = workflow.ExecuteActivity(cCtx, hA.Handler(), activities.HangupActivityInput{
 				SessionId:    offerId.String(),
-				HangupCause:  "NORMAL_CLEARING",
+				HangupCause:  "ORIGINATOR_CANCEL",
 				HangupReason: "OfferTimeout",
 			}).Get(cCtx, output)
 		}
