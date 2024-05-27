@@ -180,10 +180,10 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	}
 
 	timeoutMillis := int32(input.Timeout / time.Millisecond)
-	input.Variables["sip_contact_user"] = input.ANI
+	input.Variables["sip_contact_user"] = input.OrigFrom
 	input.Variables["originate_timeout"] = string(timeoutMillis)
-	input.Variables["origination_caller_id_name"] = input.ANI
-	input.Variables["origination_caller_id_number"] = input.ANI
+	input.Variables["origination_caller_id_name"] = input.OrigFrom
+	input.Variables["origination_caller_id_number"] = input.OrigFrom
 
 	input.Variables["sid"] = input.SessionId
 	input.Variables["X-Session-ID"] = input.SessionId
@@ -221,7 +221,7 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	}
 
 	aleg := eslgo.Leg{
-		CallURL:      fmt.Sprintf("sofia/%v/%v@%v", input.Profile, input.DNIS, input.Gateway),
+		CallURL:      fmt.Sprintf("sofia/%v/%v@%v", input.Profile, input.OrigTo, input.Gateway),
 		LegVariables: map[string]string{"origination_uuid": fmt.Sprintf("%v", uid)},
 	}
 	raw, err := s.Conn.OriginateCall(ctx, input.Background, aleg, bleg, vars)

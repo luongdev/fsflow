@@ -45,7 +45,7 @@ type CallbackActivityInput struct {
 	Method  Method                 `json:"method"`
 	Queries map[string]interface{} `json:"queries"`
 	Headers map[string]string      `json:"headers"`
-	Body    shared.WorkflowInput   `json:"body"`
+	Body    map[string]interface{} `json:"body"`
 }
 
 type CallbackActivity struct {

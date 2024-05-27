@@ -144,6 +144,18 @@ func (wi WorkflowInput) Validate() error {
 	return nil
 }
 
+type WorkflowSignal struct {
+	Action Action        `json:"action"`
+	Input  WorkflowInput `json:"input"`
+}
+
+type WorkflowCallback struct {
+	URL     string                 `json:"url"`
+	Method  string                 `json:"method"`
+	Headers map[string]string      `json:"headers"`
+	Body    map[string]interface{} `json:"body"`
+}
+
 type ActivityFunc func(ctx context.Context, i WorkflowInput) (*WorkflowOutput, error)
 
 type WorkflowFunc func(ctx workflow.Context, i WorkflowInput) (*WorkflowOutput, error)
