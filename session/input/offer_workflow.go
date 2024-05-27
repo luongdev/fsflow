@@ -23,5 +23,4 @@ type OfferWorkflowInput struct {
 	Direction   freeswitch.Direction   `json:"direction"`
 	Variables   map[string]interface{} `json:"variables"`
 	Extension   string                 `json:"extension"`
-	Callback    string                 `json:"callback"`
 }

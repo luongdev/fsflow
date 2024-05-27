@@ -1,11 +1,12 @@
 package processors
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/luongdev/fsflow/session"
 	"github.com/luongdev/fsflow/session/activities"
-	input2 "github.com/luongdev/fsflow/session/input"
+	"github.com/luongdev/fsflow/session/input"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence"
 	"go.uber.org/cadence/client"
@@ -26,25 +27,46 @@ func (p *OfferProcessor) Process(ctx workflow.Context, metadata shared.Metadata)
 	logger := workflow.GetLogger(ctx)
 	output = shared.NewWorkflowOutput(metadata.GetSessionId())
 
-	input := input2.OfferWorkflowInput{}
-	if ok := shared.ConvertInput(metadata.GetInput(), &input); !ok {
+	oi := input.OfferWorkflowInput{}
+	if ok := shared.ConvertInput(metadata.GetInput(), &oi); !ok {
 		logger.Error("Failed to get input")
 		err = fmt.Errorf("cannot cast input to OfferWorkflowInput")
 		return
 	}
 
+	if cb := metadata.GetInput().GetCallback(); cb != nil {
+		if oi.Variables == nil {
+			oi.Variables = make(map[string]interface{})
+		}
+
+		oi.Variables["callback_url"] = cb.URL
+		if cb.Method != "" {
+			oi.Variables["callback_method"] = cb.Method
+		}
+		if cb.Headers != nil && len(cb.Headers) > 0 {
+			if h, err := json.Marshal(cb.Headers); err != nil {
+				oi.Variables["callback_headers"] = string(h)
+			}
+		}
+		if cb.Body != nil && len(cb.Body) > 0 {
+			if b, err := json.Marshal(cb.Body); err != nil {
+				oi.Variables["callback_body"] = string(b)
+			}
+		}
+	}
+
 	ctx = workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
-		ExecutionStartToCloseTimeout: input.Timeout,
+		ExecutionStartToCloseTimeout: oi.Timeout,
 		ParentClosePolicy:            client.ParentClosePolicyTerminate,
 	})
 
-	input.UId, err = uuid.NewRandom()
+	oi.UId, err = uuid.NewRandom()
 	if err != nil {
 		logger.Error("Failed to generate UUID", zap.Error(err))
 		return
 	}
 
-	err = workflow.ExecuteChildWorkflow(ctx, "workflows.OfferWorkflow", input).Get(ctx, &output)
+	err = workflow.ExecuteChildWorkflow(ctx, "workflows.OfferWorkflow", oi).Get(ctx, &output)
 	if err != nil {
 		if cadence.IsTimeoutError(err) {
 			hA := p.aP.GetActivity(activities.HangupActivityName)
@@ -57,7 +79,7 @@ func (p *OfferProcessor) Process(ctx workflow.Context, metadata shared.Metadata)
 				StartToCloseTimeout:    5 * time.Second,
 			})
 			err = workflow.ExecuteActivity(cCtx, hA.Handler(), activities.HangupActivityInput{
-				SessionId:    input.UId.String(),
+				SessionId:    oi.UId.String(),
 				HangupCause:  "ORIGINATOR_CANCEL",
 				HangupReason: "OfferTimeout",
 			}).Get(cCtx, output)

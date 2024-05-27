@@ -79,7 +79,7 @@ func (c *CallbackActivity) Handler() shared.ActivityFunc {
 			return output, fmt.Errorf("cannot cast input to CallbackActivityInput")
 		}
 
-		bInput, err := json.Marshal(&input)
+		bInput, err := json.Marshal(input.Body)
 		if err != nil {
 			logger.Error("Failed to marshal input", zap.Error(err))
 			return output, err

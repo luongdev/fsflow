@@ -184,14 +184,11 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	input.Variables["originate_timeout"] = string(timeoutMillis)
 	input.Variables["origination_caller_id_name"] = input.OrigFrom
 	input.Variables["origination_caller_id_number"] = input.OrigFrom
+	input.Variables["Direction"] = string(input.Direction)
 
 	input.Variables["sid"] = input.SessionId
 	input.Variables["X-Session-ID"] = input.SessionId
-
 	input.Variables["disable_q850_reason"] = true
-	input.Variables["origination_callback"] = input.Callback
-
-	input.Variables["Direction"] = string(input.Direction)
 
 	if input.AutoAnswer {
 		input.Variables["X-Answer"] = "auto"

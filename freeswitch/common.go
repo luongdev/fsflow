@@ -193,7 +193,6 @@ type Originator struct {
 	AutoAnswer  bool
 	AllowReject bool
 	Background  bool
-	Callback    string
 	Direction   Direction
 	ANI         string
 	DNIS        string

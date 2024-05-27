@@ -35,6 +35,7 @@ const (
 	FieldInput     Field = "input"
 	FieldOutput    Field = "output"
 	FieldUniqueId  Field = "uniqueId"
+	FieldCallback  Field = "callback"
 )
 
 var actions = map[string]Action{
@@ -102,6 +103,20 @@ func NewQueryHandler(r WorkflowQueryResult, e error) WorkflowQueryHandler {
 	}
 }
 
+type WorkflowCallback struct {
+	URL     string                 `json:"url"`
+	Method  string                 `json:"method"`
+	Headers map[string]string      `json:"headers"`
+	Body    map[string]interface{} `json:"body"`
+}
+
+func (wc *WorkflowCallback) Validate() error {
+	if wc.URL == "" {
+		return errors.NewWorkflowInputError("url is required")
+	}
+	return nil
+}
+
 type WorkflowInput map[Field]interface{}
 
 func (wi WorkflowInput) GetSessionId() string {
@@ -137,6 +152,26 @@ func (wi WorkflowInput) GetTimeout() time.Duration {
 	return -1
 }
 
+func (wi WorkflowInput) GetCallback() *WorkflowCallback {
+	cb, ok := wi[FieldCallback]
+	if !ok {
+		m, ok := wi["WorkflowInput"].(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		if cb, ok = m[string(FieldCallback)]; !ok {
+			return nil
+		}
+	}
+
+	wc := &WorkflowCallback{}
+	if ok := Convert(cb, wc); !ok {
+		return nil
+	}
+
+	return wc
+}
+
 func (wi WorkflowInput) Validate() error {
 	if wi.GetSessionId() == "" {
 		return errors.NewWorkflowInputError("sessionId is required")
@@ -147,13 +182,6 @@ func (wi WorkflowInput) Validate() error {
 type WorkflowSignal struct {
 	Action Action        `json:"action"`
 	Input  WorkflowInput `json:"input"`
-}
-
-type WorkflowCallback struct {
-	URL     string                 `json:"url"`
-	Method  string                 `json:"method"`
-	Headers map[string]string      `json:"headers"`
-	Body    map[string]interface{} `json:"body"`
 }
 
 type ActivityFunc func(ctx context.Context, i WorkflowInput) (*WorkflowOutput, error)

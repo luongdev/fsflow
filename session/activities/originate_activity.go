@@ -28,7 +28,6 @@ type OriginateActivityInput struct {
 	Variables   map[string]interface{} `json:"variables"`
 	Extension   string                 `json:"extension"`
 	Background  bool                   `json:"background"`
-	Callback    string                 `json:"callback"`
 }
 
 type OriginateActivity struct {
@@ -83,7 +82,6 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 
 		res, err := client.Originate(ctx, &freeswitch.Originator{
 			SessionId:   input.GetSessionId(),
-			Callback:    input.Callback,
 			Timeout:     input.Timeout,
 			ANI:         input.ANI,
 			DNIS:        input.DNIS,
