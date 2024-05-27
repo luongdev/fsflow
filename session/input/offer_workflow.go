@@ -1,6 +1,7 @@
 package input
 
 import (
+	"github.com/google/uuid"
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"time"
@@ -9,17 +10,18 @@ import (
 type OfferWorkflowInput struct {
 	shared.WorkflowInput
 
-	Timeout      time.Duration          `json:"timeout"`
-	DialedNumber string                 `json:"dialedNumber"`
-	Destination  string                 `json:"destination"`
-	Gateway      string                 `json:"gateway"`
-	Profile      string                 `json:"profile"`
-	ANI          string                 `json:"ani"`
-	DNIS         string                 `json:"dnis"`
-	AutoAnswer   bool                   `json:"autoAnswer"`
-	AllowReject  bool                   `json:"allowReject"`
-	Direction    freeswitch.Direction   `json:"direction"`
-	Variables    map[string]interface{} `json:"variables"`
-	Extension    string                 `json:"extension"`
-	Callback     string                 `json:"callback"`
+	UId         uuid.UUID              `json:"uid"`
+	Timeout     time.Duration          `json:"timeout"`
+	Gateway     string                 `json:"gateway"`
+	Profile     string                 `json:"profile"`
+	ANI         string                 `json:"ani"`
+	DNIS        string                 `json:"dnis"`
+	OrigFrom    string                 `json:"origFrom"`
+	OrigTo      string                 `json:"origTo"`
+	AutoAnswer  bool                   `json:"autoAnswer"`
+	AllowReject bool                   `json:"allowReject"`
+	Direction   freeswitch.Direction   `json:"direction"`
+	Variables   map[string]interface{} `json:"variables"`
+	Extension   string                 `json:"extension"`
+	Callback    string                 `json:"callback"`
 }

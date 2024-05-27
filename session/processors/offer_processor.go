@@ -8,6 +8,7 @@ import (
 	input2 "github.com/luongdev/fsflow/session/input"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence"
+	"go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 	"time"
@@ -21,58 +22,51 @@ func NewOfferProcessor(w shared.FreeswitchWorkflow, aP session.ActivityProvider)
 	return &OfferProcessor{FreeswitchActivityProcessorImpl: NewFreeswitchActivityProcessor(w, aP)}
 }
 
-func (p *OfferProcessor) Process(ctx workflow.Context, metadata shared.Metadata) (*shared.WorkflowOutput, error) {
+func (p *OfferProcessor) Process(ctx workflow.Context, metadata shared.Metadata) (output *shared.WorkflowOutput, err error) {
 	logger := workflow.GetLogger(ctx)
-	output := shared.NewWorkflowOutput(metadata.GetSessionId())
+	output = shared.NewWorkflowOutput(metadata.GetSessionId())
 
 	input := input2.OfferWorkflowInput{}
 	if ok := shared.ConvertInput(metadata.GetInput(), &input); !ok {
 		logger.Error("Failed to get input")
-		return output, fmt.Errorf("cannot cast input to OfferWorkflowInput")
+		err = fmt.Errorf("cannot cast input to OfferWorkflowInput")
+		return
 	}
 
-	info := workflow.GetInfo(ctx)
 	ctx = workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
 		ExecutionStartToCloseTimeout: input.Timeout,
-		WorkflowID:                   info.WorkflowExecution.RunID,
+		ParentClosePolicy:            client.ParentClosePolicyTerminate,
 	})
 
-	if input.Variables == nil {
-		input.Variables = make(map[string]interface{})
-	}
-
-	offerId, err := uuid.NewRandom()
+	input.UId, err = uuid.NewRandom()
 	if err != nil {
 		logger.Error("Failed to generate UUID", zap.Error(err))
-		return output, err
+		return
 	}
 
-	logger.Info("Offering call", zap.String("uuid", offerId.String()))
-
-	input.Variables["uuid"] = offerId.String()
 	err = workflow.ExecuteChildWorkflow(ctx, "workflows.OfferWorkflow", input).Get(ctx, &output)
 	if err != nil {
 		if cadence.IsTimeoutError(err) {
 			hA := p.aP.GetActivity(activities.HangupActivityName)
 			if hA == nil {
 				err = fmt.Errorf("activity %s not found", shared.ActionHangup)
-				return output, err
+				return
 			}
 			cCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 				ScheduleToStartTimeout: time.Second,
 				StartToCloseTimeout:    5 * time.Second,
 			})
 			err = workflow.ExecuteActivity(cCtx, hA.Handler(), activities.HangupActivityInput{
-				SessionId:    offerId.String(),
+				SessionId:    input.UId.String(),
 				HangupCause:  "ORIGINATOR_CANCEL",
 				HangupReason: "OfferTimeout",
 			}).Get(cCtx, output)
 		}
 		logger.Error("Failed to execute child workflow", zap.Error(err))
-		return output, err
+		return
 	}
 
-	return output, err
+	return
 }
 
 var _ shared.FreeswitchActivityProcessor = (*OfferProcessor)(nil)

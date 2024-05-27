@@ -14,20 +14,21 @@ import (
 type OriginateActivityInput struct {
 	shared.WorkflowInput
 
-	Timeout      time.Duration          `json:"timeout"`
-	DialedNumber string                 `json:"dialedNumber"`
-	Destination  string                 `json:"destination"`
-	ANI          string                 `json:"ani"`
-	DNIS         string                 `json:"dnis"`
-	Gateway      string                 `json:"gateway"`
-	Profile      string                 `json:"profile"`
-	AutoAnswer   bool                   `json:"autoAnswer"`
-	AllowReject  bool                   `json:"allowReject"`
-	Direction    freeswitch.Direction   `json:"direction"`
-	Variables    map[string]interface{} `json:"variables"`
-	Extension    string                 `json:"extension"`
-	Background   bool                   `json:"background"`
-	Callback     string                 `json:"callback"`
+	UId         string                 `json:"uid"`
+	Timeout     time.Duration          `json:"timeout"`
+	ANI         string                 `json:"ani"`
+	DNIS        string                 `json:"dnis"`
+	OrigFrom    string                 `json:"origFrom"`
+	OrigTo      string                 `json:"origTo"`
+	Gateway     string                 `json:"gateway"`
+	Profile     string                 `json:"profile"`
+	AutoAnswer  bool                   `json:"autoAnswer"`
+	AllowReject bool                   `json:"allowReject"`
+	Direction   freeswitch.Direction   `json:"direction"`
+	Variables   map[string]interface{} `json:"variables"`
+	Extension   string                 `json:"extension"`
+	Background  bool                   `json:"background"`
+	Callback    string                 `json:"callback"`
 }
 
 type OriginateActivity struct {
@@ -70,20 +71,24 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			input.Variables = make(map[string]interface{})
 		}
 
-		if input.ANI != "" {
-			input.Variables["X-ANI"] = input.ANI
+		if input.ANI == "" {
+			input.ANI = input.OrigFrom
 		}
+		input.Variables["X-ANI"] = input.ANI
 
-		if input.DNIS != "" {
-			input.Variables["X-DNIS"] = input.DNIS
+		if input.DNIS == "" {
+			input.DNIS = input.OrigTo
 		}
+		input.Variables["X-DNIS"] = input.DNIS
 
 		res, err := client.Originate(ctx, &freeswitch.Originator{
 			SessionId:   input.GetSessionId(),
 			Callback:    input.Callback,
 			Timeout:     input.Timeout,
-			ANI:         input.DialedNumber,
-			DNIS:        input.Destination,
+			ANI:         input.ANI,
+			DNIS:        input.DNIS,
+			OrigFrom:    input.OrigFrom,
+			OrigTo:      input.OrigTo,
 			Direction:   input.Direction,
 			Profile:     input.Profile,
 			Gateway:     input.Gateway,

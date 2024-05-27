@@ -2,6 +2,7 @@ package freeswitch
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/percipia/eslgo"
 	"strings"
 	"time"
@@ -188,6 +189,7 @@ type Command struct {
 }
 
 type Originator struct {
+	UId         uuid.UUID
 	AutoAnswer  bool
 	AllowReject bool
 	Background  bool
@@ -195,12 +197,22 @@ type Originator struct {
 	Direction   Direction
 	ANI         string
 	DNIS        string
+	OrigFrom    string
+	OrigTo      string
 	Gateway     string
 	Profile     string
 	Timeout     time.Duration
 	Extension   string
 	SessionId   string
 	Variables   map[string]interface{}
+}
+
+func (o *Originator) GetUIdOrDefault() (uuid.UUID, error) {
+	if o.UId == uuid.Nil {
+		return uuid.NewRandom()
+	}
+
+	return o.UId, nil
 }
 
 type EventListener func(req *Event)
