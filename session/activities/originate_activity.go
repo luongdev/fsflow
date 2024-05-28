@@ -24,7 +24,7 @@ type OriginateActivityInput struct {
 	Profile     string                 `json:"profile"`
 	AutoAnswer  bool                   `json:"autoAnswer"`
 	AllowReject bool                   `json:"allowReject"`
-	Direction   freeswitch.Direction   `json:"direction"`
+	Direction   shared.Direction       `json:"direction"`
 	Variables   map[string]interface{} `json:"variables"`
 	Extension   string                 `json:"extension"`
 	Background  bool                   `json:"background"`

@@ -217,6 +217,10 @@ func Convert(m interface{}, target interface{}) bool {
 }
 
 func ConvertInput(in WorkflowInput, out interface{}) bool {
+	if in == nil {
+		return false
+	}
+
 	if in["WorkflowInput"] == nil {
 		in["WorkflowInput"] = WorkflowInput{FieldSessionId: in.GetSessionId()}
 	}

@@ -3,16 +3,10 @@ package freeswitch
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/luongdev/fsflow/shared"
 	"github.com/percipia/eslgo"
 	"strings"
 	"time"
-)
-
-type Direction string
-
-const (
-	Inbound  Direction = "inbound"
-	Outbound Direction = "outbound"
 )
 
 type Status string
@@ -193,7 +187,7 @@ type Originator struct {
 	AutoAnswer  bool
 	AllowReject bool
 	Background  bool
-	Direction   Direction
+	Direction   shared.Direction
 	ANI         string
 	DNIS        string
 	OrigFrom    string

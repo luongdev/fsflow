@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/session"
 	"github.com/luongdev/fsflow/session/activities"
 	"github.com/luongdev/fsflow/shared"
@@ -59,7 +58,7 @@ func (p *OriginateProcessor) Process(ctx workflow.Context, metadata shared.Metad
 				}
 				output.Metadata[shared.FieldInput] = bInput
 
-				if i.Direction == freeswitch.Outbound {
+				if i.Direction == shared.Outbound {
 					bInput.Originatee = i.GetSessionId()
 					bInput.Originator = uid
 				}

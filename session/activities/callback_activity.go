@@ -48,6 +48,17 @@ type CallbackActivityInput struct {
 	Body    map[string]interface{} `json:"body"`
 }
 
+func CallbackFrom(sessionId string, timeout time.Duration, cb *shared.WorkflowCallback) *CallbackActivityInput {
+	return &CallbackActivityInput{
+		Body:          cb.Body,
+		Headers:       cb.Headers,
+		URL:           cb.URL,
+		Timeout:       timeout,
+		Method:        Method(cb.Method),
+		WorkflowInput: shared.WorkflowInput{shared.FieldSessionId: sessionId},
+	}
+}
+
 type CallbackActivity struct {
 }
 

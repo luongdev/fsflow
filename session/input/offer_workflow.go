@@ -2,7 +2,6 @@ package input
 
 import (
 	"github.com/google/uuid"
-	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/shared"
 	"time"
 )
@@ -20,7 +19,7 @@ type OfferWorkflowInput struct {
 	OrigTo      string                 `json:"origTo"`
 	AutoAnswer  bool                   `json:"autoAnswer"`
 	AllowReject bool                   `json:"allowReject"`
-	Direction   freeswitch.Direction   `json:"direction"`
+	Direction   string                 `json:"direction"`
 	Variables   map[string]interface{} `json:"variables"`
 	Extension   string                 `json:"extension"`
 }
