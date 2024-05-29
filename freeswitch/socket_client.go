@@ -154,16 +154,17 @@ func (s *SocketClientImpl) BgApi(ctx context.Context, cmd *Command) (string, err
 }
 
 func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (string, error) {
+	uid, err := input.GetUIdOrDefault()
+	if err != nil {
+		return "", err
+	}
+
 	if input.Gateway == "" {
 		return "", error2.RequireField("gateway")
 	}
 
-	if input.DNIS == "" {
-		return "", error2.RequireField("DNIS")
-	}
-
-	if input.ANI == "" {
-		input.ANI = input.SessionId
+	if input.OrigTo == "" {
+		return "", error2.RequireField("origTo")
 	}
 
 	if input.Variables == nil {
@@ -179,18 +180,15 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 	}
 
 	timeoutMillis := int32(input.Timeout / time.Millisecond)
-	input.Variables["sip_contact_user"] = input.ANI
+	input.Variables["sip_contact_user"] = input.OrigFrom
 	input.Variables["originate_timeout"] = string(timeoutMillis)
-	input.Variables["origination_caller_id_name"] = input.ANI
-	input.Variables["origination_caller_id_number"] = input.ANI
-
-	input.Variables["session_id"] = input.SessionId
-	input.Variables["X-Session-ID"] = input.SessionId
-
-	input.Variables["disable_q850_reason"] = true
-	input.Variables["origination_callback"] = input.Callback
-
+	input.Variables["origination_caller_id_name"] = input.OrigFrom
+	input.Variables["origination_caller_id_number"] = input.OrigFrom
 	input.Variables["Direction"] = string(input.Direction)
+
+	input.Variables["sid"] = input.SessionId
+	input.Variables["X-Session-ID"] = input.SessionId
+	input.Variables["disable_q850_reason"] = true
 
 	if input.AutoAnswer {
 		input.Variables["X-Answer"] = "auto"
@@ -219,14 +217,17 @@ func (s *SocketClientImpl) Originate(ctx context.Context, input *Originator) (st
 		vars[k] = fmt.Sprintf("%v", v)
 	}
 
-	aleg := eslgo.Leg{CallURL: fmt.Sprintf("sofia/%v/%v@%v", input.Profile, input.DNIS, input.Gateway)}
+	aleg := eslgo.Leg{
+		CallURL:      fmt.Sprintf("sofia/%v/%v@%v", input.Profile, input.OrigTo, input.Gateway),
+		LegVariables: map[string]string{"origination_uuid": fmt.Sprintf("%v", uid)},
+	}
 	raw, err := s.Conn.OriginateCall(ctx, input.Background, aleg, bleg, vars)
 	if err != nil {
 		return "", err
 	}
 
 	res, ok := NewResponse(raw).Get()
-	if !ok {
+	if !ok && res == "" {
 		return res, fmt.Errorf("failed to originate call: %v", res)
 	}
 

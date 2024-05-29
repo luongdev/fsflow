@@ -2,16 +2,11 @@ package freeswitch
 
 import (
 	"context"
+	"github.com/google/uuid"
+	"github.com/luongdev/fsflow/shared"
 	"github.com/percipia/eslgo"
 	"strings"
 	"time"
-)
-
-type Direction string
-
-const (
-	Inbound  Direction = "inbound"
-	Outbound Direction = "outbound"
 )
 
 type Status string
@@ -169,12 +164,12 @@ func getUniqueId(raw RawData) string {
 
 func getSessionId(raw RawData) string {
 	if raw != nil {
-		if raw.HasHeader("variable_session_id") {
-			return raw.GetHeader("variable_session_id")
+		if raw.HasHeader("variable_sid") {
+			return raw.GetHeader("variable_sid")
 		}
 
-		if raw.HasHeader("variable_sip_h_session_id") {
-			return raw.GetHeader("variable_sip_h_session_id")
+		if raw.HasHeader("variable_sip_h_X-Session-ID") {
+			return raw.GetHeader("variable_sip_h_X-Session-ID")
 		}
 	}
 
@@ -188,19 +183,29 @@ type Command struct {
 }
 
 type Originator struct {
+	UId         uuid.UUID
 	AutoAnswer  bool
 	AllowReject bool
 	Background  bool
-	Callback    string
-	Direction   Direction
+	Direction   shared.Direction
 	ANI         string
 	DNIS        string
+	OrigFrom    string
+	OrigTo      string
 	Gateway     string
 	Profile     string
 	Timeout     time.Duration
 	Extension   string
 	SessionId   string
 	Variables   map[string]interface{}
+}
+
+func (o *Originator) GetUIdOrDefault() (uuid.UUID, error) {
+	if o.UId == uuid.Nil {
+		return uuid.NewRandom()
+	}
+
+	return o.UId, nil
 }
 
 type EventListener func(req *Event)

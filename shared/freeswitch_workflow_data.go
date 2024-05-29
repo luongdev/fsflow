@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/luongdev/fsflow/errors"
 	"go.uber.org/cadence/workflow"
+	"time"
 )
 
 type Action string
@@ -19,6 +20,7 @@ const (
 	ActionTransfer  Action = "transfer"
 	ActionOriginate Action = "originate"
 	ActionSet       Action = "set"
+	ActionOffer     Action = "offer"
 	ActionUnknown   Action = "unknown"
 )
 
@@ -29,9 +31,11 @@ const (
 	FieldMessage   Field = "message"
 	FieldSessionId Field = "sessionId"
 	FieldDomain    Field = "domain"
+	FieldTimeout   Field = "timeout"
 	FieldInput     Field = "input"
 	FieldOutput    Field = "output"
 	FieldUniqueId  Field = "uniqueId"
+	FieldCallback  Field = "callback"
 )
 
 var actions = map[string]Action{
@@ -41,6 +45,7 @@ var actions = map[string]Action{
 	string(ActionEvent):     ActionEvent,
 	string(ActionHangup):    ActionHangup,
 	string(ActionTransfer):  ActionTransfer,
+	string(ActionOffer):     ActionOffer,
 	string(ActionOriginate): ActionOriginate,
 	string(ActionSet):       ActionSet,
 }
@@ -98,6 +103,20 @@ func NewQueryHandler(r WorkflowQueryResult, e error) WorkflowQueryHandler {
 	}
 }
 
+type WorkflowCallback struct {
+	URL     string                 `json:"url"`
+	Method  string                 `json:"method"`
+	Headers map[string]string      `json:"headers"`
+	Body    map[string]interface{} `json:"body"`
+}
+
+func (wc *WorkflowCallback) Validate() error {
+	if wc.URL == "" {
+		return errors.NewWorkflowInputError("url is required")
+	}
+	return nil
+}
+
 type WorkflowInput map[Field]interface{}
 
 func (wi WorkflowInput) GetSessionId() string {
@@ -113,11 +132,56 @@ func (wi WorkflowInput) GetSessionId() string {
 	return fmt.Sprintf("%v", i)
 }
 
+func (wi WorkflowInput) GetTimeout() time.Duration {
+	t, ok := wi[FieldTimeout]
+	if !ok {
+		m, ok := wi["WorkflowInput"].(map[string]interface{})
+		if !ok {
+			return -1
+		}
+		t = m[string(FieldSessionId)]
+	}
+
+	if d, ok := t.(time.Duration); ok {
+		return d
+	}
+	if f, ok := t.(float64); ok {
+		return time.Duration(f)
+	}
+
+	return -1
+}
+
+func (wi WorkflowInput) GetCallback() *WorkflowCallback {
+	cb, ok := wi[FieldCallback]
+	if !ok {
+		m, ok := wi["WorkflowInput"].(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		if cb, ok = m[string(FieldCallback)]; !ok {
+			return nil
+		}
+	}
+
+	wc := &WorkflowCallback{}
+	if ok := Convert(cb, wc); !ok {
+		return nil
+	}
+
+	return wc
+}
+
 func (wi WorkflowInput) Validate() error {
 	if wi.GetSessionId() == "" {
 		return errors.NewWorkflowInputError("sessionId is required")
 	}
 	return nil
+}
+
+type WorkflowSignal struct {
+	Action Action        `json:"action"`
+	Input  WorkflowInput `json:"input"`
 }
 
 type ActivityFunc func(ctx context.Context, i WorkflowInput) (*WorkflowOutput, error)
@@ -153,6 +217,10 @@ func Convert(m interface{}, target interface{}) bool {
 }
 
 func ConvertInput(in WorkflowInput, out interface{}) bool {
+	if in == nil {
+		return false
+	}
+
 	if in["WorkflowInput"] == nil {
 		in["WorkflowInput"] = WorkflowInput{FieldSessionId: in.GetSessionId()}
 	}

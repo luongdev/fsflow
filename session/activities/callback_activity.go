@@ -45,7 +45,18 @@ type CallbackActivityInput struct {
 	Method  Method                 `json:"method"`
 	Queries map[string]interface{} `json:"queries"`
 	Headers map[string]string      `json:"headers"`
-	Body    shared.WorkflowInput   `json:"body"`
+	Body    map[string]interface{} `json:"body"`
+}
+
+func CallbackFrom(sessionId string, timeout time.Duration, cb *shared.WorkflowCallback) *CallbackActivityInput {
+	return &CallbackActivityInput{
+		Body:          cb.Body,
+		Headers:       cb.Headers,
+		URL:           cb.URL,
+		Timeout:       timeout,
+		Method:        Method(cb.Method),
+		WorkflowInput: shared.WorkflowInput{shared.FieldSessionId: sessionId},
+	}
 }
 
 type CallbackActivity struct {
@@ -79,7 +90,7 @@ func (c *CallbackActivity) Handler() shared.ActivityFunc {
 			return output, fmt.Errorf("cannot cast input to CallbackActivityInput")
 		}
 
-		bInput, err := json.Marshal(&input)
+		bInput, err := json.Marshal(input.Body)
 		if err != nil {
 			logger.Error("Failed to marshal input", zap.Error(err))
 			return output, err

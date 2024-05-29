@@ -47,7 +47,7 @@ func (s *SocketServerImpl) ListenAndServe() error {
 		_, _ = client.Execute(ctx, &Command{
 			AppName: "multiset",
 			Uid:     req.UniqueId,
-			AppArgs: fmt.Sprintf("park_after_bridge=true session_id=%v", req.UniqueId),
+			AppArgs: fmt.Sprintf("park_after_bridge=true sid=%v", req.UniqueId),
 		})
 
 		go func() {
@@ -65,7 +65,7 @@ func (s *SocketServerImpl) ListenAndServe() error {
 		}
 
 		client.AllEvents(ctx)
-		client.AddFilter(ctx, "variable_session_id", req.UniqueId)
+		client.AddFilter(ctx, "variable_sid", req.UniqueId)
 
 		client.EventListener("ALL", func(event *Event) {
 			if event.SessionId != "" {

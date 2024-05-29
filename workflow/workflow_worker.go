@@ -68,6 +68,7 @@ func NewFreeswitchWorker(c *Config, opts *FreeswitchWorkerOptions) (*FreeswitchW
 	aP := session.NewActivityProvider(fsWorker.store)
 
 	fsWorker.AddWorkflow(workflows.NewInboundWorkflow(opts.SocketProvider, aP))
+	fsWorker.AddWorkflow(workflows.NewOfferWorkflow(opts.SocketProvider, aP))
 
 	fsWorker.AddActivity(activities.NewCallbackActivity())
 	fsWorker.AddActivity(activities.NewSessionInitActivity())
