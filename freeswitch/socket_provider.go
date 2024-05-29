@@ -6,8 +6,8 @@ type SocketProviderImpl struct {
 	store *SocketStore
 }
 
-func NewSocketProvider(store *SocketStore) SocketProviderImpl {
-	return SocketProviderImpl{store: store}
+func NewSocketProvider(store *SocketStore) *SocketProviderImpl {
+	return &SocketProviderImpl{store: store}
 }
 
 func (s *SocketProviderImpl) GetClient(key string) SocketClient {

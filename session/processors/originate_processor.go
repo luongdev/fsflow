@@ -1,17 +1,12 @@
 package processors
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"github.com/luongdev/fsflow/session"
 	"github.com/luongdev/fsflow/session/activities"
 	"github.com/luongdev/fsflow/shared"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
-	"log"
-	"net/http"
-	"time"
 )
 
 type OriginateProcessor struct {
@@ -26,20 +21,43 @@ func (p *OriginateProcessor) Process(ctx workflow.Context, metadata shared.Metad
 	logger := workflow.GetLogger(ctx)
 	output := shared.NewWorkflowOutput(metadata.GetSessionId())
 
-	i := activities.OriginateActivityInput{}
-	err := p.GetInput(metadata, &i)
+	oi := activities.OriginateActivityInput{}
+	err := p.GetInput(metadata, &oi)
 	if err != nil {
 		logger.Error("Failed to get input", zap.Error(err))
 		return output, err
 	}
 
+	if oi.Background {
+		if cb := metadata.GetInput().GetCallback(); cb != nil {
+			if oi.Variables == nil {
+				oi.Variables = make(map[string]interface{})
+			}
+
+			oi.Variables["callback_url"] = cb.URL
+			if cb.Method != "" {
+				oi.Variables["callback_method"] = cb.Method
+			}
+			if cb.Headers != nil && len(cb.Headers) > 0 {
+				if h, err := json.Marshal(cb.Headers); err != nil {
+					oi.Variables["callback_headers"] = string(h)
+				}
+			}
+			if cb.Body != nil && len(cb.Body) > 0 {
+				if b, err := json.Marshal(cb.Body); err != nil {
+					oi.Variables["callback_body"] = string(b)
+				}
+			}
+		}
+	}
+
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
-		StartToCloseTimeout:    i.Timeout,
+		StartToCloseTimeout:    oi.Timeout,
 		ScheduleToStartTimeout: 1,
 	})
 
 	oA := p.aP.GetActivity(activities.OriginateActivityName)
-	err = workflow.ExecuteActivity(ctx, oA.Handler(), i).Get(ctx, &output)
+	err = workflow.ExecuteActivity(ctx, oA.Handler(), oi).Get(ctx, &output)
 
 	if err != nil {
 		logger.Error("Failed to execute originate activity", zap.Error(err))
@@ -47,69 +65,33 @@ func (p *OriginateProcessor) Process(ctx workflow.Context, metadata shared.Metad
 	}
 
 	if output.Success {
-		if !i.Background {
+		if !oi.Background {
 			uid, ok := output.Metadata[shared.FieldUniqueId].(string)
-			if ok && uid != "" && i.Extension != "" && i.GetSessionId() != "" {
+			if ok && uid != "" && oi.Extension != "" && oi.GetSessionId() != "" {
 				output.Metadata[shared.FieldAction] = shared.ActionBridge
 				bInput := activities.BridgeActivityInput{
-					Originator:    i.GetSessionId(),
+					Originator:    oi.GetSessionId(),
 					Originatee:    uid,
-					WorkflowInput: i.WorkflowInput,
+					WorkflowInput: oi.WorkflowInput,
 				}
-				output.Metadata[shared.FieldInput] = bInput
 
-				if i.Direction == shared.Outbound {
-					bInput.Originatee = i.GetSessionId()
+				if bInput.WorkflowInput != nil {
+					if cb := metadata.GetInput().GetCallback(); cb != nil {
+						bInput.WorkflowInput[shared.FieldCallback] =
+							&shared.WorkflowCallback{URL: cb.URL, Method: cb.Method, Headers: cb.Headers, Body: cb.Body}
+					}
+				}
+
+				output.Metadata[shared.FieldInput] = bInput
+				if oi.Direction == shared.Outbound {
+					bInput.Originatee = oi.GetSessionId()
 					bInput.Originator = uid
 				}
 			}
-
-			//go func() {
-			//	err := p.sendCallback(i.Callback, metadata)
-			//	if err != nil {
-			//		logger.Error("Failed to send callback", zap.Error(err))
-			//	}
-			//}()
 		}
 	}
 
 	return output, nil
-}
-
-func (p *OriginateProcessor) sendCallback(url string, i interface{}) error {
-	bInput, err := json.Marshal(&i)
-	if err != nil {
-		return err
-	}
-
-	reqCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, url, bytes.NewBuffer(bInput))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	res, err := http.DefaultClient.Do(req)
-
-	defer func(res *http.Response) {
-		if res != nil && res.Body != nil {
-			err := res.Body.Close()
-			if err != nil {
-				log.Fatalf("failed to close response body %v", err)
-			}
-		}
-	}(res)
-
-	if err != nil {
-		return err
-	}
-
-	if res != nil && res.StatusCode != http.StatusOK {
-		return err
-	}
-
-	return nil
 }
 
 var _ shared.FreeswitchActivityProcessor = (*OriginateProcessor)(nil)

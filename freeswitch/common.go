@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luongdev/fsflow/shared"
 	"github.com/percipia/eslgo"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -62,6 +63,20 @@ type Event struct {
 	SessionId string
 	Domain    string
 	Client    SocketClient
+}
+
+func (e *Event) GetUnixTime() int64 {
+	if e.HasHeader("Event-Date-Timestamp") {
+		strTime := e.GetHeader("Event-Date-Timestamp")
+		if strTime != "" {
+			t, err := strconv.ParseUint(strTime, 10, 64)
+			if err == nil {
+				return int64(t / 1000)
+			}
+		}
+	}
+
+	return time.Now().Unix()
 }
 
 func NewEvent(client SocketClient, event *eslgo.Event) *Event {

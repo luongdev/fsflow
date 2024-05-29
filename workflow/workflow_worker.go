@@ -4,7 +4,6 @@ import (
 	"github.com/luongdev/fsflow/freeswitch"
 	"github.com/luongdev/fsflow/session"
 	"github.com/luongdev/fsflow/session/activities"
-	"github.com/luongdev/fsflow/session/workflows"
 	"github.com/luongdev/fsflow/shared"
 	"github.com/uber-go/tally"
 	"go.uber.org/cadence/.gen/go/cadence/workflowserviceclient"
@@ -18,16 +17,17 @@ import (
 
 type FreeswitchWorkerOptions struct {
 	Domain         string
+	WorkflowStore  session.Store
 	SocketProvider freeswitch.SocketProvider
 }
 
 type FreeswitchWorker struct {
-	worker.Worker
+	worker         worker.Worker
 	socketProvider freeswitch.SocketProvider
 	CadenceClient  *workflowserviceclient.Interface
 
-	workflows  []string
-	activities []string
+	workflows  map[string]bool
+	activities map[string]bool
 
 	store session.Store
 }
@@ -57,18 +57,13 @@ func NewFreeswitchWorker(c *Config, opts *FreeswitchWorkerOptions) (*FreeswitchW
 	w := worker.New(client, opts.Domain, c.TaskList, workerOptions)
 
 	fsWorker := &FreeswitchWorker{
-		Worker:         w,
+		worker:         w,
 		CadenceClient:  &client,
 		socketProvider: opts.SocketProvider,
-		workflows:      []string{},
-		activities:     []string{},
-		store:          session.NewWorkflowStore(),
+		workflows:      make(map[string]bool),
+		activities:     make(map[string]bool),
+		store:          opts.WorkflowStore,
 	}
-
-	aP := session.NewActivityProvider(fsWorker.store)
-
-	fsWorker.AddWorkflow(workflows.NewInboundWorkflow(opts.SocketProvider, aP))
-	fsWorker.AddWorkflow(workflows.NewOfferWorkflow(opts.SocketProvider, aP))
 
 	fsWorker.AddActivity(activities.NewCallbackActivity())
 	fsWorker.AddActivity(activities.NewSessionInitActivity())
@@ -81,23 +76,23 @@ func NewFreeswitchWorker(c *Config, opts *FreeswitchWorkerOptions) (*FreeswitchW
 }
 
 func (w *FreeswitchWorker) Start() error {
-	for _, wName := range w.workflows {
+	for wName := range w.workflows {
 		ww, err := w.store.GetWorkflow(wName)
 		if err != nil {
 			return err
 		}
-		w.Worker.RegisterWorkflowWithOptions(ww.Handler(), workflow.RegisterOptions{Name: ww.Name()})
+		w.worker.RegisterWorkflowWithOptions(ww.Handler(), workflow.RegisterOptions{Name: ww.Name()})
 	}
 
-	for _, aName := range w.activities {
+	for aName := range w.activities {
 		wa, err := w.store.GetActivity(aName)
 		if err != nil {
 			return err
 		}
-		w.Worker.RegisterActivityWithOptions(wa.Handler(), activity.RegisterOptions{Name: wa.Name()})
+		w.worker.RegisterActivityWithOptions(wa.Handler(), activity.RegisterOptions{Name: wa.Name()})
 	}
 
-	err := w.Worker.Start()
+	err := w.worker.Start()
 	if err != nil {
 		return err
 	}
@@ -107,14 +102,14 @@ func (w *FreeswitchWorker) Start() error {
 
 func (w *FreeswitchWorker) AddWorkflow(workflow shared.FreeswitchWorkflow) {
 	if workflow != nil {
-		w.workflows = append(w.workflows, workflow.Name())
+		w.workflows[workflow.Name()] = true
 		w.store.SetWorkflow(workflow.Name(), workflow)
 	}
 }
 
 func (w *FreeswitchWorker) AddActivity(activity shared.FreeswitchActivity) {
 	if activity != nil {
-		w.activities = append(w.activities, activity.Name())
+		w.activities[activity.Name()] = true
 		w.store.SetActivity(activity.Name(), activity)
 	}
 }
