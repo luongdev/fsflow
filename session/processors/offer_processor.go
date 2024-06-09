@@ -45,11 +45,15 @@ func (p *OfferProcessor) Process(ctx workflow.Context, metadata shared.Metadata)
 		}
 		if cb.Headers != nil && len(cb.Headers) > 0 {
 			if h, err := json.Marshal(cb.Headers); err != nil {
+				logger.Error("Failed to marshal headers", zap.Error(err))
+			} else {
 				oi.Variables["callback_headers"] = string(h)
 			}
 		}
 		if cb.Body != nil && len(cb.Body) > 0 {
 			if b, err := json.Marshal(cb.Body); err != nil {
+				logger.Error("Failed to marshal body", zap.Error(err))
+			} else {
 				oi.Variables["callback_body"] = string(b)
 			}
 		}
