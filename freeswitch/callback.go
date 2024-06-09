@@ -20,11 +20,12 @@ func (e *Event) HasCallback() (*input.WorkflowCallback, bool) {
 	cbHeaders := make(map[string]string)
 	cbHeadersStr := e.GetHeader("variable_callback_headers")
 	if cbHeadersStr == "" {
-		cbHeadersStr = "Content-Type: application/json"
-	}
-	if err := json.Unmarshal([]byte(cbHeadersStr), &cbHeaders); err != nil {
-		log.Printf("failed to unmarshal callback headers %v", err)
 		cbHeaders = map[string]string{"Content-Type": "application/json"}
+	} else {
+		if err := json.Unmarshal([]byte(cbHeadersStr), &cbHeaders); err != nil {
+			log.Printf("failed to unmarshal callback headers %v", err)
+			cbHeaders = map[string]string{"Content-Type": "application/json"}
+		}
 	}
 
 	cbBody := make(map[string]interface{})
