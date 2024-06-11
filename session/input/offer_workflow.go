@@ -22,4 +22,5 @@ type OfferWorkflowInput struct {
 	Direction   string                 `json:"direction"`
 	Variables   map[string]interface{} `json:"variables"`
 	Extension   string                 `json:"extension"`
+	Callback    *WorkflowCallback      `json:"callback"`
 }

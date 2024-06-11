@@ -1,7 +1,6 @@
 package processors
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/luongdev/fsflow/session"
@@ -32,31 +31,6 @@ func (p *OfferProcessor) Process(ctx workflow.Context, metadata shared.Metadata)
 		logger.Error("Failed to get input")
 		err = fmt.Errorf("cannot cast input to OfferWorkflowInput")
 		return
-	}
-
-	if cb := metadata.GetInput().GetCallback(); cb != nil {
-		if oi.Variables == nil {
-			oi.Variables = make(map[string]interface{})
-		}
-
-		oi.Variables["callback_url"] = cb.URL
-		if cb.Method != "" {
-			oi.Variables["callback_method"] = cb.Method
-		}
-		if cb.Headers != nil && len(cb.Headers) > 0 {
-			if h, err := json.Marshal(cb.Headers); err != nil {
-				logger.Error("Failed to marshal headers", zap.Error(err))
-			} else {
-				oi.Variables["callback_headers"] = string(h)
-			}
-		}
-		if cb.Body != nil && len(cb.Body) > 0 {
-			if b, err := json.Marshal(cb.Body); err != nil {
-				logger.Error("Failed to marshal body", zap.Error(err))
-			} else {
-				oi.Variables["callback_body"] = string(b)
-			}
-		}
 	}
 
 	ctx = workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
