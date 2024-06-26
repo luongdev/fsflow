@@ -2,6 +2,7 @@ package activities
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/luongdev/fsflow/errors"
 	"github.com/luongdev/fsflow/freeswitch"
@@ -59,10 +60,18 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			return output, errors.NewWorkflowInputError("Cannot cast input to OriginateActivityInput")
 		}
 
+		newSession := false
 		if input.GetSessionId() == "" {
 			s, err := uuid.NewRandom()
 			if err == nil {
 				input.WorkflowInput[shared.FieldSessionId] = s.String()
+			}
+			newSession = true
+		}
+
+		if input.UId == "" {
+			if uid, err := uuid.NewRandom(); err == nil {
+				input.UId = uid.String()
 			}
 		}
 
@@ -79,6 +88,16 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 			input.DNIS = input.OrigTo
 		}
 		input.Variables["X-DNIS"] = input.DNIS
+
+		if !newSession && input.UId != "" {
+			input.Variables["api_on_originate"] = fmt.Sprintf(
+				"uuid_setvar %v %v %v",
+				input.GetSessionId(),
+				shared.FieldCurrentBLeg,
+				input.UId,
+			)
+			logger.Error("set ", zap.Any("var", shared.FieldCurrentBLeg), zap.Any("for ", input.GetSessionId()), zap.Any("to ", input.UId))
+		}
 
 		res, err := client.Originate(ctx, &freeswitch.Originator{
 			SessionId:   input.GetSessionId(),
@@ -103,11 +122,8 @@ func (o *OriginateActivity) Handler() shared.ActivityFunc {
 		}
 
 		output.Success = true
-		if input.Background {
-			output.Metadata[shared.FieldUniqueId] = res
-		} else {
-			output.Metadata[shared.FieldOutput] = res
-		}
+		output.Metadata[shared.FieldUniqueId] = input.UId
+		output.Metadata[shared.FieldOutput] = res
 
 		return output, nil
 	}

@@ -67,6 +67,8 @@ func NewFreeswitchWorker(c *Config, opts *FreeswitchWorkerOptions) (*FreeswitchW
 
 	fsWorker.AddActivity(activities.NewCallbackActivity())
 	fsWorker.AddActivity(activities.NewSessionInitActivity())
+	fsWorker.AddActivity(activities.NewSetActivity(opts.SocketProvider))
+	fsWorker.AddActivity(activities.NewGetActivity(opts.SocketProvider))
 	fsWorker.AddActivity(activities.NewEventActivity(opts.SocketProvider))
 	fsWorker.AddActivity(activities.NewBridgeActivity(opts.SocketProvider))
 	fsWorker.AddActivity(activities.NewHangupActivity(opts.SocketProvider))

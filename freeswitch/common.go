@@ -165,12 +165,16 @@ func getDNIS(raw RawData) string {
 
 func getUniqueId(raw RawData) string {
 	if raw != nil {
-		if raw.HasHeader("Channel-Call-UUID") {
-			return raw.GetHeader("Channel-Call-UUID")
+		if raw.HasHeader("variable_uuid") {
+			return raw.GetHeader("variable_uuid")
 		}
 
 		if raw.HasHeader("Unique-ID") {
 			return raw.GetHeader("Unique-ID")
+		}
+
+		if raw.HasHeader("Channel-Call-UUID") {
+			return raw.GetHeader("Channel-Call-UUID")
 		}
 	}
 
@@ -185,6 +189,10 @@ func getSessionId(raw RawData) string {
 
 		if raw.HasHeader("variable_sip_h_X-Session-ID") {
 			return raw.GetHeader("variable_sip_h_X-Session-ID")
+		}
+
+		if raw.HasHeader("Channel-Call-UUID") {
+			return raw.GetHeader("Channel-Call-UUID")
 		}
 	}
 

@@ -35,7 +35,9 @@ func (p *TransferProcessor) Process(ctx workflow.Context, metadata shared.Metada
 		ParentClosePolicy:            client.ParentClosePolicyTerminate,
 	})
 
-	err = workflow.ExecuteChildWorkflow(ctx, "workflows.OfferWorkflow", oi).Get(ctx, o)
+	err = workflow.ExecuteChildWorkflow(ctx, "workflows.TransferWorkflow", oi).Get(ctx, o)
+
+	//err = workflow.ExecuteChildWorkflow(ctx, "workflows.OfferWorkflow", oi).Get(ctx, o)
 	if err != nil {
 		if cadence.IsTimeoutError(err) {
 

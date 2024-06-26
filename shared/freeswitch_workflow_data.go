@@ -27,15 +27,16 @@ const (
 type Field string
 
 const (
-	FieldAction    Field = "action"
-	FieldMessage   Field = "message"
-	FieldSessionId Field = "sessionId"
-	FieldDomain    Field = "domain"
-	FieldTimeout   Field = "timeout"
-	FieldInput     Field = "input"
-	FieldOutput    Field = "output"
-	FieldUniqueId  Field = "uniqueId"
-	FieldCallback  Field = "callback"
+	FieldAction      Field = "action"
+	FieldMessage     Field = "message"
+	FieldSessionId   Field = "sessionId"
+	FieldDomain      Field = "domain"
+	FieldTimeout     Field = "timeout"
+	FieldInput       Field = "input"
+	FieldOutput      Field = "output"
+	FieldUniqueId    Field = "uniqueId"
+	FieldCallback    Field = "callback"
+	FieldCurrentBLeg Field = "current_bleg"
 )
 
 var actions = map[string]Action{
@@ -65,6 +66,10 @@ func (m *Metadata) GetAction() Action {
 				return a
 			}
 		}
+
+		if aAct, ok := v.(Action); ok {
+			return aAct
+		}
 	}
 
 	return ActionUnknown
@@ -87,6 +92,10 @@ func (m *Metadata) GetInput() WorkflowInput {
 			if ok := Convert(i, &input); ok {
 				return input
 			}
+		}
+
+		if i, ok := v.(WorkflowInput); ok {
+			return i
 		}
 	}
 
