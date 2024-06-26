@@ -4,11 +4,14 @@ import (
 	"go.uber.org/cadence/workflow"
 )
 
+type QueryResultWorkflow interface {
+	FreeswitchWorkflow
+	QueryResult(result WorkflowQueryResult, err error)
+}
+
 type FreeswitchWorkflow interface {
 	Handler() WorkflowFunc
 	Name() string
-
-	QueryResult(r WorkflowQueryResult, e error)
 }
 
 type FreeswitchActivity interface {

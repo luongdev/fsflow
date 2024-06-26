@@ -29,8 +29,10 @@ func (p *FreeswitchActivityProcessorImpl) Process(ctx workflow.Context, metadata
 	}
 
 	if metadata.GetAction() == shared.ActionSet {
-		r := shared.WorkflowQueryResult{}
-		p.workflow.QueryResult(r, e)
+		r := make(shared.WorkflowQueryResult)
+		if w, ok := p.workflow.(shared.QueryResultWorkflow); ok {
+			w.QueryResult(r, e)
+		}
 
 		return o, e
 	}

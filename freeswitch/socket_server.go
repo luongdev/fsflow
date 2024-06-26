@@ -47,8 +47,8 @@ func (s *SocketServerImpl) ListenAndServe() error {
 		_, _ = client.Execute(ctx, &Command{
 			AppName: "multiset",
 			Uid:     req.UniqueId,
-			//AppArgs: fmt.Sprintf("park_after_bridge=true sid=%v", req.UniqueId),
-			AppArgs: fmt.Sprintf("exec_after_bridge_app=sleep exec_after_bridge_arg=30000 sid=%v", req.UniqueId),
+			AppArgs: fmt.Sprintf("park_after_bridge=true sid=%v", req.UniqueId),
+			//AppArgs: fmt.Sprintf("exec_after_bridge_app=sleep exec_after_bridge_arg=30000 sid=%v", req.UniqueId),
 		})
 
 		go func() {
@@ -69,6 +69,7 @@ func (s *SocketServerImpl) ListenAndServe() error {
 		client.AddFilter(ctx, "variable_sid", req.UniqueId)
 
 		client.EventListener("ALL", func(event *Event) {
+			go s.serverEventHandler.OnEvent(ctx, event)
 			if event.SessionId != "" {
 				if event.UniqueId == event.SessionId {
 					go s.serverEventHandler.OnAlegEvent(ctx, event)
@@ -76,9 +77,8 @@ func (s *SocketServerImpl) ListenAndServe() error {
 					go s.serverEventHandler.OnBlegEvent(ctx, event)
 				}
 			}
-			go s.serverEventHandler.OnEvent(ctx, event)
 
-			go func() {
+			defer func() {
 				if r := recover(); r != nil {
 					log.Fatalf("Recovered from panic: %v", r)
 				}

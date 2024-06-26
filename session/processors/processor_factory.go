@@ -30,6 +30,8 @@ func (f *FreeswitchProcessorFactoryImpl) CreateActivityProcessor(s shared.Action
 		return NewEventProcessor(f.workflow, f.aP), nil
 	case shared.ActionOffer:
 		return NewOfferProcessor(f.workflow, f.aP), nil
+	case shared.ActionTransfer:
+		return NewTransferProcessor(f.workflow, f.aP), nil
 
 	default:
 		return nil, errors.NewWorkflowInputError("unsupported action")
