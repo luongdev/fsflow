@@ -57,7 +57,7 @@ func (p *OfferProcessor) Process(ctx workflow.Context, metadata shared.Metadata)
 				StartToCloseTimeout:    5 * time.Second,
 			})
 			err = workflow.ExecuteActivity(cCtx, hA.Handler(), activities.HangupActivityInput{
-				SessionId:    oi.UId.String(),
+				UId:          oi.UId.String(),
 				HangupCause:  "ORIGINATOR_CANCEL",
 				HangupReason: "OfferTimeout",
 			}).Get(cCtx, output)

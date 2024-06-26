@@ -11,8 +11,9 @@ import (
 )
 
 type BridgeActivityInput struct {
-	Originator string `json:"originator"`
-	Originatee string `json:"originatee"`
+	Originator  string `json:"originator"`
+	Originatee  string `json:"originatee"`
+	TransferLeg string `json:"transferLeg"`
 
 	shared.WorkflowInput
 }

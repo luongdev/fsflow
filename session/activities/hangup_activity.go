@@ -10,9 +10,11 @@ import (
 )
 
 type HangupActivityInput struct {
-	SessionId    string `json:"sessionId"`
+	UId          string `json:"uid"`
 	HangupCause  string `json:"hangupCause"`
 	HangupReason string `json:"hangupReason"`
+
+	shared.WorkflowInput
 }
 
 type HangupActivity struct {
@@ -42,16 +44,18 @@ func (c *HangupActivity) Handler() shared.ActivityFunc {
 		client := c.p.GetClient(i.GetSessionId())
 
 		input := HangupActivityInput{}
-		ok := shared.ConvertInput(i, &input)
-
-		if !ok {
+		if !shared.ConvertInput(i, &input) {
 			logger.Error("Failed to cast input to HangupActivityInput")
 			return output, fmt.Errorf("failed to cast input to HangupActivityInput")
 		}
 
+		if input.UId == "" {
+			input.UId = i.GetSessionId()
+		}
+
 		if input.HangupReason != "" {
 			res, err := client.Execute(ctx, &freeswitch.Command{
-				Uid:     input.SessionId,
+				Uid:     input.UId,
 				AppName: "set",
 				AppArgs: fmt.Sprintf("hangup_reason %v", input.HangupReason),
 			})
@@ -63,7 +67,7 @@ func (c *HangupActivity) Handler() shared.ActivityFunc {
 
 		_, err := client.Api(ctx, &freeswitch.Command{
 			AppName: "uuid_kill",
-			AppArgs: fmt.Sprintf("%v %v", input.SessionId, input.HangupCause),
+			AppArgs: fmt.Sprintf("%v %v", input.UId, input.HangupCause),
 		})
 
 		if err != nil {
@@ -72,9 +76,9 @@ func (c *HangupActivity) Handler() shared.ActivityFunc {
 		}
 
 		output.Success = true
-		output.Metadata[shared.FieldSessionId] = input.SessionId
+		output.Metadata[shared.FieldSessionId] = input.UId
 		output.Metadata[shared.FieldMessage] =
-			fmt.Sprintf("Session %v has been hungup cause: %v", input.SessionId, input.HangupCause)
+			fmt.Sprintf("Session %v has been hungup cause: %v", input.UId, input.HangupCause)
 
 		return output, nil
 	}

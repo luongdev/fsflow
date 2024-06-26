@@ -27,6 +27,21 @@ func (p *BridgeProcessor) Process(ctx workflow.Context, metadata shared.Metadata
 		return output, err
 	}
 
+	if i.TransferLeg != "" {
+		hA := p.aP.GetActivity(activities.HangupActivityName)
+		if hA != nil {
+			err = workflow.ExecuteActivity(ctx, hA.Handler(), &activities.HangupActivityInput{
+				WorkflowInput: i.WorkflowInput,
+				UId:           i.TransferLeg,
+				HangupReason:  "ManualTransfer",
+				HangupCause:   "NORMAL_CLEARING",
+			}).Get(ctx, &output)
+			if err != nil {
+				logger.Error("Failed to execute hangup activity", zap.Error(err))
+			}
+		}
+	}
+
 	bA := p.aP.GetActivity(activities.BridgeActivityName)
 	err = workflow.ExecuteActivity(ctx, bA.Handler(), i).Get(ctx, &output)
 
