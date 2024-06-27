@@ -48,7 +48,7 @@ func (s *SocketServerImpl) ListenAndServe() error {
 			AppName: "multiset",
 			Uid:     req.UniqueId,
 			AppArgs: fmt.Sprintf("park_after_bridge=true sid=%v", req.UniqueId),
-			//AppArgs: fmt.Sprintf("exec_after_bridge_app=sleep exec_after_bridge_arg=30000 sid=%v", req.UniqueId),
+			//AppArgs: fmt.Sprintf("exec_after_bridge_app=sleep exec_after_bridge_arg=60000 sid=%v", req.UniqueId),
 		})
 
 		go func() {
